@@ -18,9 +18,10 @@ public sealed class ProfileStore
     {
         try
         {
-            return File.Exists(_profilePath)
+            var profile = File.Exists(_profilePath)
                 ? JsonSerializer.Deserialize<DeviceProfile>(File.ReadAllText(_profilePath), SerializerOptions)
                 : null;
+            return profile is null ? null : Migrate(profile);
         }
         catch (JsonException)
         {
@@ -32,5 +33,23 @@ public sealed class ProfileStore
     {
         Directory.CreateDirectory(Path.GetDirectoryName(_profilePath)!);
         File.WriteAllText(_profilePath, JsonSerializer.Serialize(profile, SerializerOptions));
+    }
+
+    private static DeviceProfile Migrate(DeviceProfile profile)
+    {
+        if (profile.ProfileVersion < 2 || profile.EqBands.Length != 10)
+        {
+            profile.ProfileVersion = 2;
+            profile.EqBands = new double[10];
+            if (profile.SelectedEqualizerPreset == "Balanceado")
+            {
+                profile.SelectedEqualizerPreset = "Padrão";
+            }
+        }
+
+        profile.EqBands = profile.EqBands
+            .Select(value => Math.Clamp(value, -8, 8))
+            .ToArray();
+        return profile;
     }
 }

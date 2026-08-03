@@ -44,6 +44,7 @@ public partial class App : Application
     public static void ExitApplication()
     {
         IsExiting = true;
+        ViewModel.Shutdown();
         if (Window is MainWindow mainWindow)
         {
             mainWindow.DisposeTrayIcon();

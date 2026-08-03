@@ -76,6 +76,11 @@ public sealed class QcyDeviceClient : IAsyncDisposable
         {
             await QueryAsync(0x30, cancellationToken);
         }
+
+        if (State.KeyFunctions.Count == 0)
+        {
+            await QueryAsync(0x2B, cancellationToken);
+        }
     }
 
     public async Task SetWearDetectionAsync(bool enabled, CancellationToken cancellationToken = default)

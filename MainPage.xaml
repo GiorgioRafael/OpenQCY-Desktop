@@ -76,7 +76,7 @@
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock FontSize="13" FontWeight="SemiBold" Text="MeloBuds N70" />
-                            <TextBlock Style="{StaticResource CaptionStyle}" Text="Pareado ao Windows" />
+                            <TextBlock Style="{StaticResource CaptionStyle}" Text="Controle BLE local" />
                         </StackPanel>
                         <Ellipse Grid.Column="2" Width="8" Height="8" Fill="{StaticResource OpenQCYAccentStrongBrush}" />
                     </Grid>
@@ -119,7 +119,7 @@
                     <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
                     <StackPanel Margin="8,8,8,0" Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE946;" FontSize="13" Foreground="{StaticResource OpenQCYMutedBrush}" />
-                        <TextBlock Style="{StaticResource CaptionStyle}" Text="Prévia segura · sem firmware" />
+                        <TextBlock Style="{StaticResource CaptionStyle}" Text="Controle local · sem conta ou firmware" />
                     </StackPanel>
                 </StackPanel>
             </Grid>
@@ -142,8 +142,8 @@
                         IsOpen="True"
                         IsClosable="False"
                         Severity="Informational"
-                        Title="Modo de demonstração seguro"
-                        Message="As preferências já ficam salvas no PC. O envio ao N70 será liberado após validarmos os comandos Bluetooth do modelo." />
+                        Title="Controle Bluetooth real do N70"
+                        Message="{x:Bind ViewModel.DiscoveryStatus, Mode=OneWay}" />
 
                     <StackPanel Margin="4,-10,4,0" Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE702;" FontSize="12" Foreground="{StaticResource OpenQCYMutedBrush}" />
@@ -163,11 +163,12 @@
                                         <FontIcon Glyph="&#xE95B;" FontSize="28" Foreground="{StaticResource OpenQCYAccentBrush}" />
                                     </Border>
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock FontSize="20" FontWeight="SemiBold" Text="QCY MeloBuds N70" />
+                                        <TextBlock FontSize="20" FontWeight="SemiBold" Text="{x:Bind ViewModel.DeviceName, Mode=OneWay}" />
                                         <StackPanel Orientation="Horizontal" Spacing="6">
                                             <Ellipse Width="7" Height="7" Fill="{StaticResource OpenQCYAccentStrongBrush}" />
-                                            <TextBlock FontSize="12" Foreground="{StaticResource OpenQCYAccentBrush}" Text="Áudio conectado" />
+                                            <TextBlock FontSize="12" Foreground="{StaticResource OpenQCYAccentBrush}" Text="{x:Bind ViewModel.ConnectionStatus, Mode=OneWay}" />
                                         </StackPanel>
+                                        <TextBlock Style="{StaticResource CaptionStyle}" Text="{x:Bind ViewModel.FirmwareVersion, Mode=OneWay}" />
                                     </StackPanel>
                                 </StackPanel>
 
@@ -179,18 +180,18 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Spacing="6">
                                         <TextBlock Style="{StaticResource BatteryLabelStyle}" Text="Esquerdo" />
-                                        <TextBlock FontSize="19" FontWeight="SemiBold" Text="86%" />
-                                        <ProgressBar Height="4" Value="86" />
+                                        <TextBlock FontSize="19" FontWeight="SemiBold" Text="{x:Bind ViewModel.LeftBatteryDisplay, Mode=OneWay}" />
+                                        <ProgressBar Height="4" Value="{x:Bind ViewModel.LeftBattery, Mode=OneWay}" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Spacing="6">
                                         <TextBlock Style="{StaticResource BatteryLabelStyle}" Text="Direito" />
-                                        <TextBlock FontSize="19" FontWeight="SemiBold" Text="82%" />
-                                        <ProgressBar Height="4" Value="82" />
+                                        <TextBlock FontSize="19" FontWeight="SemiBold" Text="{x:Bind ViewModel.RightBatteryDisplay, Mode=OneWay}" />
+                                        <ProgressBar Height="4" Value="{x:Bind ViewModel.RightBattery, Mode=OneWay}" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="2" Spacing="6">
                                         <TextBlock Style="{StaticResource BatteryLabelStyle}" Text="Estojo" />
-                                        <TextBlock FontSize="19" FontWeight="SemiBold" Text="74%" />
-                                        <ProgressBar Height="4" Value="74" />
+                                        <TextBlock FontSize="19" FontWeight="SemiBold" Text="{x:Bind ViewModel.CaseBatteryDisplay, Mode=OneWay}" />
+                                        <ProgressBar Height="4" Value="{x:Bind ViewModel.CaseBattery, Mode=OneWay}" />
                                     </StackPanel>
                                 </Grid>
                             </StackPanel>
@@ -199,7 +200,7 @@
                                 <StackPanel Spacing="14">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Style="{StaticResource CardTitleStyle}" Text="Controle de ruído" />
-                                        <TextBlock Margin="8,2,0,0" Style="{StaticResource CaptionStyle}" Text="preferência local" />
+                                        <TextBlock Margin="8,2,0,0" Style="{StaticResource CaptionStyle}" Text="sincronizado com o fone" />
                                     </StackPanel>
                                     <RadioButtons
                                         ItemsSource="{x:Bind ViewModel.NoiseModes}"
@@ -277,7 +278,7 @@
                                 <TextBlock Margin="0,5,0,0" Style="{StaticResource CaptionStyle}" Text="O OpenQCY reaplicará estas preferências quando o fone se conectar ao PC." />
                                 <TextBlock Margin="0,10,0,0" FontSize="12" Foreground="{StaticResource OpenQCYAccentBrush}" Text="{x:Bind ViewModel.SaveStatus, Mode=OneWay}" TextWrapping="Wrap" />
                             </StackPanel>
-                            <Button Grid.Column="1" Command="{x:Bind ViewModel.MarkProtocolPendingCommand}" Style="{StaticResource AccentButtonStyle}" Content="Salvar perfil" />
+                            <Button Grid.Column="1" Command="{x:Bind ViewModel.ApplyProfileCommand}" Style="{StaticResource AccentButtonStyle}" Content="Aplicar perfil" />
                         </Grid>
                     </Border>
                 </StackPanel>
@@ -295,27 +296,30 @@
                             <Grid>
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource CardTitleStyle}" Text="Equalizador" />
-                                    <TextBlock Style="{StaticResource CaptionStyle}" Text="Oito bandas · perfil salvo localmente" />
+                                    <TextBlock Style="{StaticResource CaptionStyle}" Text="Dez bandas do N70 · −8 a +8 dB" />
                                 </StackPanel>
                                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="10">
                                     <ComboBox Width="170" ItemsSource="{x:Bind ViewModel.EqualizerPresets}" SelectedItem="{x:Bind ViewModel.SelectedEqualizerPreset, Mode=TwoWay}" />
                                     <Button Command="{x:Bind ViewModel.ResetEqualizerCommand}" Content="Redefinir" />
+                                    <Button Command="{x:Bind ViewModel.ApplyEqualizerCommand}" Style="{StaticResource AccentButtonStyle}" Content="Aplicar" />
                                 </StackPanel>
                             </Grid>
 
                             <Grid Height="245" ColumnSpacing="14">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand1, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="60 Hz" /></StackPanel>
-                                <StackPanel Grid.Column="1" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand2, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="150 Hz" /></StackPanel>
-                                <StackPanel Grid.Column="2" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand3, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="400 Hz" /></StackPanel>
-                                <StackPanel Grid.Column="3" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand4, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="1 kHz" /></StackPanel>
-                                <StackPanel Grid.Column="4" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand5, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="2.4 kHz" /></StackPanel>
-                                <StackPanel Grid.Column="5" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand6, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="6 kHz" /></StackPanel>
-                                <StackPanel Grid.Column="6" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand7, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="12 kHz" /></StackPanel>
-                                <StackPanel Grid.Column="7" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand8, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="16 kHz" /></StackPanel>
+                                <StackPanel Grid.Column="0" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Minimum="-8" Maximum="8" StepFrequency="0.5" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand1, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="31" /></StackPanel>
+                                <StackPanel Grid.Column="1" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Minimum="-8" Maximum="8" StepFrequency="0.5" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand2, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="62" /></StackPanel>
+                                <StackPanel Grid.Column="2" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Minimum="-8" Maximum="8" StepFrequency="0.5" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand3, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="125" /></StackPanel>
+                                <StackPanel Grid.Column="3" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Minimum="-8" Maximum="8" StepFrequency="0.5" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand4, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="250" /></StackPanel>
+                                <StackPanel Grid.Column="4" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Minimum="-8" Maximum="8" StepFrequency="0.5" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand5, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="500" /></StackPanel>
+                                <StackPanel Grid.Column="5" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Minimum="-8" Maximum="8" StepFrequency="0.5" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand6, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="1k" /></StackPanel>
+                                <StackPanel Grid.Column="6" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Minimum="-8" Maximum="8" StepFrequency="0.5" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand7, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="2k" /></StackPanel>
+                                <StackPanel Grid.Column="7" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Minimum="-8" Maximum="8" StepFrequency="0.5" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand8, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="4k" /></StackPanel>
+                                <StackPanel Grid.Column="8" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Minimum="-8" Maximum="8" StepFrequency="0.5" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand9, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="8k" /></StackPanel>
+                                <StackPanel Grid.Column="9" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Minimum="-8" Maximum="8" StepFrequency="0.5" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand10, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="16k" /></StackPanel>
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -398,7 +402,9 @@
                             <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
                             <Grid><StackPanel><TextBlock Style="{StaticResource CardTitleStyle}" Text="Reaplicar automaticamente" /><TextBlock Style="{StaticResource CaptionStyle}" Text="Restaura seu perfil sempre que o N70 aparecer no Windows." /></StackPanel><ToggleSwitch HorizontalAlignment="Right" IsOn="{x:Bind ViewModel.AutoApplyEnabled, Mode=TwoWay}" /></Grid>
                             <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
-                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="190" /></Grid.ColumnDefinitions><StackPanel><TextBlock Style="{StaticResource CardTitleStyle}" Text="Desconexão automática" /><TextBlock Style="{StaticResource CaptionStyle}" Text="Tempo sem áudio antes de liberar a conexão." /></StackPanel><ComboBox Grid.Column="1" ItemsSource="{x:Bind ViewModel.DisconnectTimeouts}" SelectedItem="{x:Bind ViewModel.DisconnectTimeout, Mode=TwoWay}" /></Grid>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="190" /></Grid.ColumnDefinitions><StackPanel><TextBlock Style="{StaticResource CardTitleStyle}" Text="Desligamento automático" /><TextBlock Style="{StaticResource CaptionStyle}" Text="Tempo configurado no gerenciador de energia dos fones." /></StackPanel><ComboBox Grid.Column="1" ItemsSource="{x:Bind ViewModel.DisconnectTimeouts}" SelectedItem="{x:Bind ViewModel.DisconnectTimeout, Mode=TwoWay}" /></Grid>
+                            <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
+                            <Grid><StackPanel><TextBlock Style="{StaticResource CardTitleStyle}" Text="Canal de controle" /><TextBlock Style="{StaticResource CaptionStyle}" Text="Varredura BLE, serviço A001 e notificações QCY." /></StackPanel><StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8"><Button Command="{x:Bind ViewModel.DiscoverDevicesCommand}" Content="Conectar / atualizar" /><Button Command="{x:Bind ViewModel.DisconnectDeviceCommand}" Content="Desconectar" /></StackPanel></Grid>
                         </StackPanel>
                     </Border>
 

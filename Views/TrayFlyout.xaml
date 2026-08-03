@@ -23,10 +23,10 @@
                         <FontIcon Glyph="&#xE95B;" FontSize="21" />
                     </Border>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock FontSize="16" FontWeight="SemiBold" Text="QCY MeloBuds N70" />
+                        <TextBlock FontSize="16" FontWeight="SemiBold" Text="{x:Bind ViewModel.DeviceName, Mode=OneWay}" />
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <Ellipse Width="7" Height="7" Fill="{StaticResource OpenQCYAccentStrongBrush}" />
-                            <TextBlock Style="{StaticResource CaptionStyle}" Text="Áudio conectado" />
+                            <TextBlock Style="{StaticResource CaptionStyle}" Text="{x:Bind ViewModel.ConnectionStatus, Mode=OneWay}" />
                         </StackPanel>
                     </StackPanel>
                 </StackPanel>
@@ -42,9 +42,9 @@
 
             <Grid ColumnSpacing="10">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <Border Padding="10" Background="#12FFFFFF" CornerRadius="15"><StackPanel Spacing="3"><TextBlock Style="{StaticResource CaptionStyle}" Text="Esquerdo" /><TextBlock FontSize="17" FontWeight="SemiBold" Text="86%" /></StackPanel></Border>
-                <Border Grid.Column="1" Padding="10" Background="#12FFFFFF" CornerRadius="15"><StackPanel Spacing="3"><TextBlock Style="{StaticResource CaptionStyle}" Text="Direito" /><TextBlock FontSize="17" FontWeight="SemiBold" Text="82%" /></StackPanel></Border>
-                <Border Grid.Column="2" Padding="10" Background="#12FFFFFF" CornerRadius="15"><StackPanel Spacing="3"><TextBlock Style="{StaticResource CaptionStyle}" Text="Estojo" /><TextBlock FontSize="17" FontWeight="SemiBold" Text="74%" /></StackPanel></Border>
+                <Border Padding="10" Background="#12FFFFFF" CornerRadius="15"><StackPanel Spacing="3"><TextBlock Style="{StaticResource CaptionStyle}" Text="Esquerdo" /><TextBlock FontSize="17" FontWeight="SemiBold" Text="{x:Bind ViewModel.LeftBatteryDisplay, Mode=OneWay}" /></StackPanel></Border>
+                <Border Grid.Column="1" Padding="10" Background="#12FFFFFF" CornerRadius="15"><StackPanel Spacing="3"><TextBlock Style="{StaticResource CaptionStyle}" Text="Direito" /><TextBlock FontSize="17" FontWeight="SemiBold" Text="{x:Bind ViewModel.RightBatteryDisplay, Mode=OneWay}" /></StackPanel></Border>
+                <Border Grid.Column="2" Padding="10" Background="#12FFFFFF" CornerRadius="15"><StackPanel Spacing="3"><TextBlock Style="{StaticResource CaptionStyle}" Text="Estojo" /><TextBlock FontSize="17" FontWeight="SemiBold" Text="{x:Bind ViewModel.CaseBatteryDisplay, Mode=OneWay}" /></StackPanel></Border>
             </Grid>
 
             <Border Padding="16" Background="#12FFFFFF" BorderBrush="{StaticResource OpenQCYStrokeBrush}" BorderThickness="1" CornerRadius="20">
@@ -73,8 +73,8 @@
             </Grid>
 
             <StackPanel Spacing="5">
-                <TextBlock FontSize="11" Foreground="{StaticResource OpenQCYAccentBrush}" Text="PREFERÊNCIAS SALVAS NO PC" />
-                <TextBlock Style="{StaticResource CaptionStyle}" Text="O envio ao fone será ativado após validar o protocolo Bluetooth." />
+                <TextBlock FontSize="11" Foreground="{StaticResource OpenQCYAccentBrush}" Text="CONTROLE QCY VALIDADO" />
+                <TextBlock Style="{StaticResource CaptionStyle}" Text="{x:Bind ViewModel.SaveStatus, Mode=OneWay}" />
             </StackPanel>
         </StackPanel>
     </Border>
