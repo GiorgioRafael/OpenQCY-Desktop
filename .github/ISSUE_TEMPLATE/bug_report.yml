@@ -1,0 +1,33 @@
+name: Bug report
+description: Report a reproducible OpenQCY Desktop problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: checkboxes
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed Bluetooth addresses, account data, and other personal identifiers.
+          required: true
+  - type: input
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2, build 26100
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Earbuds model
+      placeholder: QCY MeloBuds N70 / HT18
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Include the steps, expected result, and actual result.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Logs or screenshots
+      description: Do not upload firmware, app credentials, addresses, or unrelated Bluetooth traffic.

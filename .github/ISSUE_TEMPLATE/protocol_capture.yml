@@ -1,0 +1,33 @@
+name: Protocol capture evidence
+description: Submit a redacted capture mapping for a user-owned QCY device
+title: "[Protocol]: "
+labels: [protocol-research]
+body:
+  - type: checkboxes
+    attributes:
+      label: Required confirmations
+      options:
+        - label: The captured earbuds and phone belong to me.
+          required: true
+        - label: I removed device addresses, phone names, tokens, and unrelated packets.
+          required: true
+        - label: This submission contains no firmware binary or official-app credential.
+          required: true
+  - type: input
+    attributes:
+      label: Device and region
+      placeholder: MeloBuds N70 / HT18, global
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Single setting changed
+      description: Describe the exact baseline, action, wait time, and observed result.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Redacted evidence
+      description: Provide characteristic UUIDs and the smallest relevant request/response fixture.
+    validations:
+      required: true
