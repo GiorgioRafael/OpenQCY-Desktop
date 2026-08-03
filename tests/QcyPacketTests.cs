@@ -1,0 +1,55 @@
+using OpenQCY_Desktop.Protocol;
+
+namespace OpenQCY.Desktop.Tests;
+
+[TestClass]
+public sealed class QcyPacketTests
+{
+    [TestMethod]
+    public void PackBuildsDocumentedInEarDisableCommand()
+    {
+        CollectionAssert.AreEqual(
+            new byte[] { 0xFF, 0x03, 0x06, 0x01, 0x02 },
+            QcyCommands.SetInEarDetection(false));
+    }
+
+    [TestMethod]
+    public void ParseReadsMultipleCommands()
+    {
+        var commands = QcyPacket.Parse([0xFF, 0x07, 0x06, 0x01, 0x02, 0x09, 0x02, 0x01, 0x02]);
+
+        Assert.HasCount(2, commands);
+        Assert.AreEqual((byte)0x06, commands[0].Opcode);
+        CollectionAssert.AreEqual(new byte[] { 0x02 }, commands[0].Parameters);
+        Assert.AreEqual((byte)0x09, commands[1].Opcode);
+        CollectionAssert.AreEqual(new byte[] { 0x01, 0x02 }, commands[1].Parameters);
+    }
+
+    [TestMethod]
+    public void ParseRejectsInvalidBodyLength()
+    {
+        Assert.IsEmpty(QcyPacket.Parse([0xFF, 0x05, 0x06, 0x01, 0x02]));
+    }
+
+    [TestMethod]
+    public void WearingDetectionPreservesDeviceActionsWhenDisabled()
+    {
+        var current = new QcyWearingDetection(true, 0x04, 0x02, true);
+
+        CollectionAssert.AreEqual(
+            new byte[] { 0xFF, 0x06, 0x2C, 0x04, 0x02, 0x04, 0x02, 0x01 },
+            QcyCommands.SetWearingDetection(false, current));
+    }
+
+    [TestMethod]
+    public void CustomEqualizerUsesN70TenBandLayout()
+    {
+        var packet = QcyCommands.BuildCustomEqualizer(Enumerable.Repeat(0d, 10).ToArray());
+
+        Assert.AreEqual((byte)0xFF, packet[0]);
+        Assert.AreEqual((byte)0x22, packet[2]);
+        Assert.AreEqual(77, packet.Length);
+        Assert.AreEqual((byte)31, packet[7]);
+        Assert.AreEqual((byte)0, packet[8]);
+    }
+}

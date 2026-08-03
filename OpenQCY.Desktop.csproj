@@ -36,6 +36,19 @@
     <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="tests\**\*.cs" />
+    <Compile Remove="Protocol\QcyCommands.cs" />
+    <Compile Remove="Protocol\QcyPacket.cs" />
+    <Compile Remove="Protocol\QcyUuids.cs" />
+    <Content Remove="tests\**\*" />
+    <None Remove="tests\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="Protocol\OpenQCY.Protocol.csproj" />
+  </ItemGroup>
+
   <!--
     Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
     Tools extension to be activated for this project even if the Windows App SDK Nuget
