@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "OpenQCY.Desktop (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "OpenQCY.Desktop (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
