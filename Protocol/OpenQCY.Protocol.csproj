@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="QcyAdvertisement.cs" />
     <Compile Include="QcyCommands.cs" />
     <Compile Include="QcyPacket.cs" />
     <Compile Include="QcyUuids.cs" />

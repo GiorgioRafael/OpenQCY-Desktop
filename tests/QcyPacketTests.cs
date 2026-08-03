@@ -52,4 +52,29 @@ public sealed class QcyPacketTests
         Assert.AreEqual((byte)31, packet[7]);
         Assert.AreEqual((byte)0, packet[8]);
     }
+
+    [TestMethod]
+    public void AdvertisementParsesN70IdentityBatteryAndControlAddress()
+    {
+        var data = new byte[24];
+        data[0] = 0x5D;
+        data[1] = 0x40; // vendor ID 23872
+        data[5] = 0x80 | 86;
+        data[6] = 82;
+        data[7] = 74;
+        data[11] = 0x33;
+        data[12] = 0x44;
+        data[13] = 0x55;
+        data[14] = 0x88;
+        data[15] = 0x77;
+        data[16] = 0x66;
+
+        var advertisement = QcyAdvertisement.Parse(data);
+
+        Assert.IsNotNull(advertisement);
+        Assert.AreEqual(QcyUuids.N70BlackVendorId, advertisement.VendorId);
+        Assert.AreEqual((byte)86, advertisement.LeftBattery);
+        Assert.IsTrue(advertisement.LeftCharging);
+        Assert.AreEqual("44:33:55:66:77:88", QcyAdvertisement.FormatAddress(advertisement.ControlAddress!.Value));
+    }
 }
