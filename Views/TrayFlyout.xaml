@@ -3,52 +3,59 @@
     x:Class="OpenQCY_Desktop.Views.TrayFlyout"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Background="#FF111720"
+    Background="#FF181E27"
     RequestedTheme="Dark">
 
     <Border
-        Margin="8"
-        Padding="20"
-        Background="#F01A202A"
-        BorderBrush="#32FFFFFF"
-        BorderThickness="1"
-        CornerRadius="28">
-        <Border.Shadow>
-            <ThemeShadow />
-        </Border.Shadow>
-        <StackPanel Spacing="16">
-            <Grid>
-                <StackPanel Orientation="Horizontal" Spacing="12">
-                    <Border Width="44" Height="44" Background="{StaticResource OpenQCYAccentStrongBrush}" CornerRadius="15">
+        Padding="18"
+        Background="#FF181E27"
+        CornerRadius="22">
+        <StackPanel Spacing="14">
+            <Grid Height="44" ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" Spacing="11">
+                    <Border Width="44" Height="44" Background="{StaticResource OpenQCYAccentStrongBrush}" CornerRadius="14">
                         <FontIcon Glyph="&#xE95B;" FontSize="21" />
                     </Border>
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock FontSize="16" FontWeight="SemiBold" Text="{x:Bind ViewModel.DeviceName, Mode=OneWay}" />
+                    <StackPanel MaxWidth="182" VerticalAlignment="Center">
+                        <TextBlock FontSize="15" FontWeight="SemiBold" Text="{x:Bind ViewModel.DeviceName, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Ellipse Width="7" Height="7" Fill="{StaticResource OpenQCYAccentStrongBrush}" />
-                            <TextBlock Style="{StaticResource CaptionStyle}" Text="{x:Bind ViewModel.ConnectionStatus, Mode=OneWay}" />
+                            <Ellipse Width="6" Height="6" Fill="{StaticResource OpenQCYAccentStrongBrush}" />
+                            <TextBlock Style="{StaticResource CaptionStyle}" Text="{x:Bind ViewModel.ConnectionStatus, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                     </StackPanel>
                 </StackPanel>
-                <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
-                    <Button Style="{StaticResource RoundIconButtonStyle}" Click="OpenDesktop_Click" ToolTipService.ToolTip="Abrir configurações">
-                        <FontIcon Glyph="&#xE8A7;" FontSize="16" />
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal" Spacing="6">
+                    <Button Width="36" Height="36" CornerRadius="18" Style="{StaticResource RoundIconButtonStyle}" Click="OpenDesktop_Click" ToolTipService.ToolTip="Abrir configurações">
+                        <FontIcon Glyph="&#xE8A7;" FontSize="14" />
                     </Button>
-                    <Button Style="{StaticResource RoundIconButtonStyle}" Click="Exit_Click" ToolTipService.ToolTip="Sair do OpenQCY">
-                        <FontIcon Glyph="&#xE7E8;" FontSize="16" />
+                    <Button Width="36" Height="36" CornerRadius="18" Style="{StaticResource RoundIconButtonStyle}" Click="Close_Click" ToolTipService.ToolTip="Fechar painel">
+                        <FontIcon Glyph="&#xE711;" FontSize="14" />
+                    </Button>
+                    <Button Width="36" Height="36" CornerRadius="18" Style="{StaticResource RoundIconButtonStyle}" Click="Exit_Click" ToolTipService.ToolTip="Sair do OpenQCY">
+                        <FontIcon Glyph="&#xE7E8;" FontSize="14" />
                     </Button>
                 </StackPanel>
             </Grid>
 
-            <Grid ColumnSpacing="10">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <Border Padding="10" Background="#12FFFFFF" CornerRadius="15"><StackPanel Spacing="3"><TextBlock Style="{StaticResource CaptionStyle}" Text="Esquerdo" /><TextBlock FontSize="17" FontWeight="SemiBold" Text="{x:Bind ViewModel.LeftBatteryDisplay, Mode=OneWay}" /></StackPanel></Border>
-                <Border Grid.Column="1" Padding="10" Background="#12FFFFFF" CornerRadius="15"><StackPanel Spacing="3"><TextBlock Style="{StaticResource CaptionStyle}" Text="Direito" /><TextBlock FontSize="17" FontWeight="SemiBold" Text="{x:Bind ViewModel.RightBatteryDisplay, Mode=OneWay}" /></StackPanel></Border>
-                <Border Grid.Column="2" Padding="10" Background="#12FFFFFF" CornerRadius="15"><StackPanel Spacing="3"><TextBlock Style="{StaticResource CaptionStyle}" Text="Estojo" /><TextBlock FontSize="17" FontWeight="SemiBold" Text="{x:Bind ViewModel.CaseBatteryDisplay, Mode=OneWay}" /></StackPanel></Border>
+            <Grid Height="58" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Padding="10,8" Background="#0FFFFFFF" CornerRadius="14"><StackPanel Spacing="2"><TextBlock Style="{StaticResource CaptionStyle}" Text="Esquerdo" /><TextBlock FontSize="16" FontWeight="SemiBold" Text="{x:Bind ViewModel.LeftBatteryDisplay, Mode=OneWay}" /></StackPanel></Border>
+                <Border Grid.Column="1" Padding="10,8" Background="#0FFFFFFF" CornerRadius="14"><StackPanel Spacing="2"><TextBlock Style="{StaticResource CaptionStyle}" Text="Direito" /><TextBlock FontSize="16" FontWeight="SemiBold" Text="{x:Bind ViewModel.RightBatteryDisplay, Mode=OneWay}" /></StackPanel></Border>
+                <Border Grid.Column="2" Padding="10,8" Background="#0FFFFFFF" CornerRadius="14"><StackPanel Spacing="2"><TextBlock Style="{StaticResource CaptionStyle}" Text="Estojo" /><TextBlock FontSize="16" FontWeight="SemiBold" Text="{x:Bind ViewModel.CaseBatteryDisplay, Mode=OneWay}" /></StackPanel></Border>
             </Grid>
 
-            <Border Padding="16" Background="#12FFFFFF" BorderBrush="{StaticResource OpenQCYStrokeBrush}" BorderThickness="1" CornerRadius="20">
-                <StackPanel Spacing="12">
+            <Border Padding="15" Background="#0FFFFFFF" CornerRadius="18">
+                <StackPanel Spacing="10">
                     <TextBlock Style="{StaticResource CardTitleStyle}" Text="Controle de ruído" />
                     <RadioButtons
                         ItemsSource="{x:Bind ViewModel.NoiseModes}"
@@ -56,25 +63,50 @@
                 </StackPanel>
             </Border>
 
-            <Grid ColumnSpacing="10">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <Border Padding="14" Background="#12FFFFFF" CornerRadius="18">
-                    <StackPanel Spacing="10">
-                        <Grid><FontIcon HorizontalAlignment="Left" Glyph="&#xE8D7;" FontSize="16" Foreground="{StaticResource OpenQCYBlueBrush}" /><ToggleSwitch HorizontalAlignment="Right" IsOn="{x:Bind ViewModel.WearDetection, Mode=TwoWay}" /></Grid>
+            <Grid Height="82" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Padding="10" Background="#0FFFFFFF" CornerRadius="16">
+                    <StackPanel Spacing="4">
+                        <Grid>
+                            <Border Width="28" Height="28" HorizontalAlignment="Left" Background="#1C55A8FF" CornerRadius="9">
+                                <FontIcon Glyph="&#xE8D7;" FontSize="14" Foreground="{StaticResource OpenQCYBlueBrush}" />
+                            </Border>
+                            <ToggleSwitch
+                                MinWidth="0"
+                                HorizontalAlignment="Right"
+                                AutomationProperties.Name="Detecção de uso"
+                                OffContent=""
+                                OnContent=""
+                                IsOn="{x:Bind ViewModel.WearDetection, Mode=TwoWay}" />
+                        </Grid>
                         <TextBlock FontSize="13" FontWeight="SemiBold" Text="Detecção de uso" />
                     </StackPanel>
                 </Border>
-                <Border Grid.Column="1" Padding="14" Background="#12FFFFFF" CornerRadius="18">
-                    <StackPanel Spacing="10">
-                        <Grid><FontIcon HorizontalAlignment="Left" Glyph="&#xE7FC;" FontSize="16" Foreground="#FFFFB35C" /><ToggleSwitch HorizontalAlignment="Right" IsOn="{x:Bind ViewModel.GameModeEnabled, Mode=TwoWay}" /></Grid>
+                <Border Grid.Column="1" Padding="10" Background="#0FFFFFFF" CornerRadius="16">
+                    <StackPanel Spacing="4">
+                        <Grid>
+                            <Border Width="28" Height="28" HorizontalAlignment="Left" Background="#1CFFB35C" CornerRadius="9">
+                                <FontIcon Glyph="&#xE7FC;" FontSize="14" Foreground="#FFFFB35C" />
+                            </Border>
+                            <ToggleSwitch
+                                MinWidth="0"
+                                HorizontalAlignment="Right"
+                                AutomationProperties.Name="Modo jogo"
+                                OffContent=""
+                                OnContent=""
+                                IsOn="{x:Bind ViewModel.GameModeEnabled, Mode=TwoWay}" />
+                        </Grid>
                         <TextBlock FontSize="13" FontWeight="SemiBold" Text="Modo jogo" />
                     </StackPanel>
                 </Border>
             </Grid>
 
-            <StackPanel Spacing="5">
-                <TextBlock FontSize="11" Foreground="{StaticResource OpenQCYAccentBrush}" Text="CONTROLE QCY VALIDADO" />
-                <TextBlock Style="{StaticResource CaptionStyle}" Text="{x:Bind ViewModel.SaveStatus, Mode=OneWay}" />
+            <StackPanel Spacing="4">
+                <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource OpenQCYAccentBrush}" Text="CONTROLE QCY VALIDADO" />
+                <TextBlock MaxHeight="34" Style="{StaticResource CaptionStyle}" Text="{x:Bind ViewModel.SaveStatus, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
             </StackPanel>
         </StackPanel>
     </Border>

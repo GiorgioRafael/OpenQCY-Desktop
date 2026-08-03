@@ -18,6 +18,11 @@ public sealed partial class TrayFlyout : UserControl
         App.ShowMainWindow();
     }
 
+    private void Close_Click(object sender, RoutedEventArgs e)
+    {
+        App.HideTrayFlyout();
+    }
+
     private void Exit_Click(object sender, RoutedEventArgs e)
     {
         App.ExitApplication();

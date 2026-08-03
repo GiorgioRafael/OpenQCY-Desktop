@@ -83,6 +83,13 @@ public sealed partial class MainWindow : Window
     private void ShowTrayFlyout()
     {
         _trayFlyoutWindow ??= new TrayFlyoutWindow();
-        _trayFlyoutWindow.ShowNearNotificationArea();
+        if (_trayFlyoutWindow.IsVisible)
+        {
+            _trayFlyoutWindow.Hide();
+        }
+        else
+        {
+            _trayFlyoutWindow.ShowNearNotificationArea();
+        }
     }
 }
