@@ -77,4 +77,12 @@ public sealed class QcyPacketTests
         Assert.IsTrue(advertisement.LeftCharging);
         Assert.AreEqual("44:33:55:66:77:88", QcyAdvertisement.FormatAddress(advertisement.ControlAddress!.Value));
     }
+
+    [TestMethod]
+    public void PromptVolumeUsesRawDeviceScale()
+    {
+        CollectionAssert.AreEqual(
+            new byte[] { 0xFF, 0x03, 0x1D, 0x01, 0x0F },
+            QcyCommands.SetPromptVolume(15));
+    }
 }

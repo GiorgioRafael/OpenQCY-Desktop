@@ -39,6 +39,8 @@
   <ItemGroup>
     <Compile Remove="tests\**\*.cs" />
     <Compile Remove="Bluetooth\**\*.cs" />
+    <Compile Remove="Device\**\*.cs" />
+    <Compile Remove="Diagnostics\**\*.cs" />
     <Compile Remove="Protocol\QcyAdvertisement.cs" />
     <Compile Remove="Protocol\QcyCommands.cs" />
     <Compile Remove="Protocol\QcyPacket.cs" />
@@ -50,6 +52,7 @@
 
   <ItemGroup>
     <ProjectReference Include="Bluetooth\OpenQCY.Bluetooth.csproj" />
+    <ProjectReference Include="Device\OpenQCY.Device.csproj" />
     <ProjectReference Include="Protocol\OpenQCY.Protocol.csproj" />
   </ItemGroup>
 

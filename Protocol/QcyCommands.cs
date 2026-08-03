@@ -71,8 +71,8 @@ public static class QcyCommands
     public static byte[] SetMultipoint(bool enabled) => Toggle(0x24, enabled);
     public static byte[] SetWindDetection(bool enabled) => Toggle(0x2A, enabled);
 
-    public static byte[] SetPromptVolume(double percentage) =>
-        QcyPacket.Pack(0x1D, [(byte)Math.Clamp((int)Math.Round(percentage), 0, 100)]);
+    public static byte[] SetPromptVolume(byte value) =>
+        QcyPacket.Pack(0x1D, [value]);
 
     public static byte[] SetAutoPowerOff(ushort minutes)
     {
