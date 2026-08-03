@@ -54,6 +54,23 @@ public sealed class QcyPacketTests
     }
 
     [TestMethod]
+    public void EqualizerV2ParsesPresetAndSignedGains()
+    {
+        var parameters = QcyCommands.BuildCustomEqualizer(
+            new double[] { -8, -4, 0, 1.25, 2, 3, 4, 5, 6, 8 })[4..];
+
+        var equalizer = QcyEqualizerState.ParseV2(parameters);
+
+        Assert.IsNotNull(equalizer);
+        Assert.AreEqual((byte)8, equalizer.PresetIndex);
+        Assert.HasCount(10, equalizer.Bands);
+        Assert.AreEqual((ushort)31, equalizer.Bands[0].Frequency);
+        Assert.AreEqual(-8d, equalizer.Bands[0].Gain);
+        Assert.AreEqual(1.25d, equalizer.Bands[3].Gain);
+        Assert.AreEqual(8d, equalizer.Bands[9].Gain);
+    }
+
+    [TestMethod]
     public void AdvertisementParsesN70IdentityBatteryAndControlAddress()
     {
         var data = new byte[24];

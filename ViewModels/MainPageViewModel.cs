@@ -177,6 +177,12 @@ public partial class MainPageViewModel : ObservableObject
     public partial bool EqualizerSupported { get; set; }
 
     [ObservableProperty]
+    public partial bool EqualizerPresetsSupported { get; set; }
+
+    [ObservableProperty]
+    public partial string EqualizerCapabilityStatus { get; set; } = "Disponibilidade verificada ao conectar";
+
+    [ObservableProperty]
     public partial bool KeyFunctionsSupported { get; set; }
 
     [RelayCommand]
@@ -273,11 +279,29 @@ public partial class MainPageViewModel : ObservableObject
             return;
         }
 
+        if (SelectedEqualizerPreset == "Personalizado")
+        {
+            if (!EqualizerSupported)
+            {
+                SaveStatus = "Este firmware não expôs um canal de equalizador compatível";
+                return;
+            }
+
+            await RunDeviceActionAsync(
+                client => client.SetCustomEqualizerAsync(GetEqualizerBands()),
+                "Equalizador personalizado confirmado pelo N70");
+            return;
+        }
+
+        if (!EqualizerPresetsSupported)
+        {
+            SaveStatus = "O firmware 3.0.13 aceita a curva personalizada, mas não expõe o canal antigo de presets";
+            return;
+        }
+
         await RunDeviceActionAsync(
-            client => SelectedEqualizerPreset == "Personalizado"
-                ? client.SetCustomEqualizerAsync(GetEqualizerBands())
-                : client.SetEqualizerPresetAsync(EqualizerPresetIds[SelectedEqualizerPreset]),
-            "Equalizador confirmado pelo N70");
+            client => client.SetEqualizerPresetAsync(EqualizerPresetIds[SelectedEqualizerPreset]),
+            "Preset confirmado pelo N70");
     }
 
     [RelayCommand]
@@ -323,7 +347,8 @@ public partial class MainPageViewModel : ObservableObject
     partial void OnSelectedEqualizerPresetChanged(string value)
     {
         Save();
-        if (value != "Personalizado" && EqualizerPresetIds.TryGetValue(value, out var preset))
+        if (value != "Personalizado" && EqualizerPresetsSupported &&
+            EqualizerPresetIds.TryGetValue(value, out var preset))
         {
             RunWhenConnected(client => client.SetEqualizerPresetAsync(preset), "Equalizador confirmado pelo N70");
         }
@@ -370,16 +395,16 @@ public partial class MainPageViewModel : ObservableObject
         _ = SendPromptVolumeAfterDelayAsync(value, _promptVolumeDebounce.Token);
     }
 
-    partial void OnEqBand1Changed(double value) => Save();
-    partial void OnEqBand2Changed(double value) => Save();
-    partial void OnEqBand3Changed(double value) => Save();
-    partial void OnEqBand4Changed(double value) => Save();
-    partial void OnEqBand5Changed(double value) => Save();
-    partial void OnEqBand6Changed(double value) => Save();
-    partial void OnEqBand7Changed(double value) => Save();
-    partial void OnEqBand8Changed(double value) => Save();
-    partial void OnEqBand9Changed(double value) => Save();
-    partial void OnEqBand10Changed(double value) => Save();
+    partial void OnEqBand1Changed(double value) => PersistEqualizerBand();
+    partial void OnEqBand2Changed(double value) => PersistEqualizerBand();
+    partial void OnEqBand3Changed(double value) => PersistEqualizerBand();
+    partial void OnEqBand4Changed(double value) => PersistEqualizerBand();
+    partial void OnEqBand5Changed(double value) => PersistEqualizerBand();
+    partial void OnEqBand6Changed(double value) => PersistEqualizerBand();
+    partial void OnEqBand7Changed(double value) => PersistEqualizerBand();
+    partial void OnEqBand8Changed(double value) => PersistEqualizerBand();
+    partial void OnEqBand9Changed(double value) => PersistEqualizerBand();
+    partial void OnEqBand10Changed(double value) => PersistEqualizerBand();
 
     partial void OnLeftDoubleTapChanged(string value) => PersistTouchFunctions();
     partial void OnRightDoubleTapChanged(string value) => PersistTouchFunctions();
@@ -436,17 +461,15 @@ public partial class MainPageViewModel : ObservableObject
             await client.SetAutoPowerOffAsync(autoPowerOff);
         }
 
-        if (EqualizerSupported)
+        if (profile.SelectedEqualizerPreset == "Personalizado" && EqualizerSupported)
         {
-            if (profile.SelectedEqualizerPreset == "Personalizado")
-            {
-                await client.SetCustomEqualizerAsync(profile.EqBands);
-            }
-            else if (EqualizerPresetIds.TryGetValue(profile.SelectedEqualizerPreset, out var preset) &&
-                state.EqualizerPreset != preset)
-            {
-                await client.SetEqualizerPresetAsync(preset);
-            }
+            await client.SetCustomEqualizerAsync(profile.EqBands);
+        }
+        else if (EqualizerPresetsSupported &&
+            EqualizerPresetIds.TryGetValue(profile.SelectedEqualizerPreset, out var preset) &&
+            state.EqualizerPreset != preset)
+        {
+            await client.SetEqualizerPresetAsync(preset);
         }
 
         if (KeyFunctionsSupported && state.KeyFunctions.Count > 0)
@@ -526,6 +549,20 @@ public partial class MainPageViewModel : ObservableObject
                     .FirstOrDefault(pair => pair.Value == state.EqualizerPreset.Value).Key ?? SelectedEqualizerPreset;
             }
 
+            if (state.EqualizerGains.Count == 10)
+            {
+                EqBand1 = state.EqualizerGains[0];
+                EqBand2 = state.EqualizerGains[1];
+                EqBand3 = state.EqualizerGains[2];
+                EqBand4 = state.EqualizerGains[3];
+                EqBand5 = state.EqualizerGains[4];
+                EqBand6 = state.EqualizerGains[5];
+                EqBand7 = state.EqualizerGains[6];
+                EqBand8 = state.EqualizerGains[7];
+                EqBand9 = state.EqualizerGains[8];
+                EqBand10 = state.EqualizerGains[9];
+            }
+
             if (state.KeyFunctions.Count > 0)
             {
                 LeftDoubleTap = FromTouchAction(state.KeyFunctions.GetValueOrDefault((byte)0x03));
@@ -543,7 +580,14 @@ public partial class MainPageViewModel : ObservableObject
     private void UpdateCapabilities()
     {
         var characteristics = _connection?.Characteristics ?? [];
-        EqualizerSupported = characteristics.Any(info => info.Uuid == QcyUuids.Equalizer && info.CanWrite);
+        EqualizerPresetsSupported = characteristics.Any(info => info.Uuid == QcyUuids.Equalizer && info.CanWrite);
+        var customEqualizerSupported = _deviceClient?.State.EqualizerGains.Count == 10;
+        EqualizerSupported = EqualizerPresetsSupported || customEqualizerSupported;
+        EqualizerCapabilityStatus = EqualizerPresetsSupported
+            ? "Presets e curva personalizada disponíveis"
+            : customEqualizerSupported
+                ? "Curva personalizada disponível · presets não expostos pelo firmware"
+                : "Canal de equalizador não encontrado";
         KeyFunctionsSupported = characteristics.Any(info => info.Uuid == QcyUuids.KeyFunctions && info.CanWrite);
         WearDetectionSupported = _deviceClient?.State.WearDetectionProtocol != QcyWearDetectionProtocol.Unknown;
     }
@@ -554,6 +598,16 @@ public partial class MainPageViewModel : ObservableObject
         RunWhenConnected(
             client => client.SetKeyFunctionsAsync(BuildKeyFunctionMap(CreateProfile(), client.State.KeyFunctions)),
             "Gestos confirmados pelo N70");
+    }
+
+    private void PersistEqualizerBand()
+    {
+        if (!_isSynchronizingDevice && SelectedEqualizerPreset != "Personalizado")
+        {
+            SelectedEqualizerPreset = "Personalizado";
+        }
+
+        Save();
     }
 
     private void PersistAndRun(Func<QcyDeviceClient, Task> action, string successMessage)
@@ -625,6 +679,8 @@ public partial class MainPageViewModel : ObservableObject
         IsDeviceConnected = false;
         WearDetectionSupported = false;
         EqualizerSupported = false;
+        EqualizerPresetsSupported = false;
+        EqualizerCapabilityStatus = "Disponibilidade verificada ao conectar";
         KeyFunctionsSupported = false;
         if (updateStatus)
         {

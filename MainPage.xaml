@@ -296,12 +296,12 @@
                             <Grid>
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource CardTitleStyle}" Text="Equalizador" />
-                                    <TextBlock Style="{StaticResource CaptionStyle}" Text="Dez bandas do N70 · −8 a +8 dB" />
+                                    <TextBlock Style="{StaticResource CaptionStyle}" Text="{x:Bind ViewModel.EqualizerCapabilityStatus, Mode=OneWay}" />
                                 </StackPanel>
                                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="10">
-                                    <ComboBox Width="170" ItemsSource="{x:Bind ViewModel.EqualizerPresets}" SelectedItem="{x:Bind ViewModel.SelectedEqualizerPreset, Mode=TwoWay}" />
+                                    <ComboBox Width="170" IsEnabled="{x:Bind ViewModel.EqualizerPresetsSupported, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.EqualizerPresets}" SelectedItem="{x:Bind ViewModel.SelectedEqualizerPreset, Mode=TwoWay}" />
                                     <Button Command="{x:Bind ViewModel.ResetEqualizerCommand}" Content="Redefinir" />
-                                    <Button Command="{x:Bind ViewModel.ApplyEqualizerCommand}" Style="{StaticResource AccentButtonStyle}" Content="Aplicar" />
+                                    <Button Command="{x:Bind ViewModel.ApplyEqualizerCommand}" IsEnabled="{x:Bind ViewModel.EqualizerSupported, Mode=OneWay}" Style="{StaticResource AccentButtonStyle}" Content="Aplicar" />
                                 </StackPanel>
                             </Grid>
 
@@ -370,14 +370,14 @@
                     <Border Style="{StaticResource GlassCardStyle}">
                         <StackPanel Spacing="8">
                             <TextBlock Style="{StaticResource CardTitleStyle}" Text="Toques" />
-                            <TextBlock Margin="0,0,0,12" Style="{StaticResource CaptionStyle}" Text="As ações abaixo serão reaplicadas ao reconectar." />
-                            <Grid Padding="0,12" ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Dois toques · esquerdo" /><ComboBox Grid.Column="1" ItemsSource="{x:Bind ViewModel.TouchActions}" SelectedItem="{x:Bind ViewModel.LeftDoubleTap, Mode=TwoWay}" /></Grid>
+                            <TextBlock Margin="0,0,0,12" Style="{StaticResource CaptionStyle}" Text="Disponível quando o canal de gestos do fone estiver conectado." />
+                            <Grid Padding="0,12" ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Dois toques · esquerdo" /><ComboBox Grid.Column="1" IsEnabled="{x:Bind ViewModel.KeyFunctionsSupported, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.TouchActions}" SelectedItem="{x:Bind ViewModel.LeftDoubleTap, Mode=TwoWay}" /></Grid>
                             <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
-                            <Grid Padding="0,12" ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Dois toques · direito" /><ComboBox Grid.Column="1" ItemsSource="{x:Bind ViewModel.TouchActions}" SelectedItem="{x:Bind ViewModel.RightDoubleTap, Mode=TwoWay}" /></Grid>
+                            <Grid Padding="0,12" ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Dois toques · direito" /><ComboBox Grid.Column="1" IsEnabled="{x:Bind ViewModel.KeyFunctionsSupported, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.TouchActions}" SelectedItem="{x:Bind ViewModel.RightDoubleTap, Mode=TwoWay}" /></Grid>
                             <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
-                            <Grid Padding="0,12" ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Pressionar · esquerdo" /><ComboBox Grid.Column="1" ItemsSource="{x:Bind ViewModel.TouchActions}" SelectedItem="{x:Bind ViewModel.LeftLongPress, Mode=TwoWay}" /></Grid>
+                            <Grid Padding="0,12" ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Pressionar · esquerdo" /><ComboBox Grid.Column="1" IsEnabled="{x:Bind ViewModel.KeyFunctionsSupported, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.TouchActions}" SelectedItem="{x:Bind ViewModel.LeftLongPress, Mode=TwoWay}" /></Grid>
                             <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
-                            <Grid Padding="0,12" ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Pressionar · direito" /><ComboBox Grid.Column="1" ItemsSource="{x:Bind ViewModel.TouchActions}" SelectedItem="{x:Bind ViewModel.RightLongPress, Mode=TwoWay}" /></Grid>
+                            <Grid Padding="0,12" ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Pressionar · direito" /><ComboBox Grid.Column="1" IsEnabled="{x:Bind ViewModel.KeyFunctionsSupported, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.TouchActions}" SelectedItem="{x:Bind ViewModel.RightLongPress, Mode=TwoWay}" /></Grid>
                         </StackPanel>
                     </Border>
 

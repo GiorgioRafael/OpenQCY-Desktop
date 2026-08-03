@@ -77,6 +77,11 @@ public sealed class QcyDeviceClient : IAsyncDisposable
             await QueryAsync(0x30, cancellationToken);
         }
 
+        if (!_connection.Characteristics.Any(info => info.Uuid == QcyUuids.Equalizer))
+        {
+            await QueryAsync(0x22, cancellationToken);
+        }
+
         if (State.KeyFunctions.Count == 0)
         {
             await QueryAsync(0x2B, cancellationToken);
@@ -405,8 +410,16 @@ public sealed class QcyDeviceClient : IAsyncDisposable
             case 0x30 when parameters.Length >= 3:
                 UpdateState(state => state with { FirmwareVersion = FormatVersion(parameters) });
                 break;
-            case 0x22 when parameters.Length >= 1:
-                UpdateState(state => state with { EqualizerPreset = parameters[0] });
+            case 0x22:
+                var equalizer = QcyEqualizerState.ParseV2(parameters);
+                if (equalizer is not null)
+                {
+                    UpdateState(state => state with
+                    {
+                        EqualizerPreset = equalizer.PresetIndex,
+                        EqualizerGains = equalizer.Bands.Select(band => band.Gain).ToArray(),
+                    });
+                }
                 break;
             case 0x2B when parameters.Length >= 2:
                 UpdateState(state => state with { KeyFunctions = QcyCommands.ParseKeyFunctions(parameters) });

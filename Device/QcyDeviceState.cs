@@ -37,4 +37,5 @@ public sealed record QcyDeviceState
     public ushort? AutoPowerOffMinutes { get; init; }
     public IReadOnlyDictionary<byte, byte> KeyFunctions { get; init; } = new Dictionary<byte, byte>();
     public byte? EqualizerPreset { get; init; }
+    public IReadOnlyList<double> EqualizerGains { get; init; } = [];
 }

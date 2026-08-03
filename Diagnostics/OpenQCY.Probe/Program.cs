@@ -41,7 +41,14 @@ Console.WriteLine($"Detecção de uso: {BooleanText(state.WearDetectionEnabled)}
 Console.WriteLine($"ANC: {state.NoiseMode?.ToString() ?? "não informado"}");
 Console.WriteLine($"Modo jogo: {BooleanText(state.GameModeEnabled)}");
 Console.WriteLine($"LDAC: {BooleanText(state.LdacEnabled)} · multiponto: {BooleanText(state.MultipointEnabled)}");
+Console.WriteLine($"Equalizador: preset {state.EqualizerPreset?.ToString() ?? "não informado"} · {state.EqualizerGains.Count} bandas");
 Console.WriteLine($"Características QCY encontradas: {connection.Characteristics.Count}");
+foreach (var characteristic in connection.Characteristics.OrderBy(item => item.Uuid))
+{
+    Console.WriteLine(
+        $"  {characteristic.Uuid:D} · leitura {YesNo(characteristic.CanRead)} · " +
+        $"escrita {YesNo(characteristic.CanWrite)} · notificação {YesNo(characteristic.CanNotify)}");
+}
 
 if (willDisableWearDetection)
 {
@@ -53,6 +60,7 @@ if (willDisableWearDetection)
 return 0;
 
 static string Percent(byte? value) => value.HasValue ? $"{value}%" : "—";
+static string YesNo(bool value) => value ? "sim" : "não";
 static string BooleanText(bool? value) => value switch
 {
     true => "ligada",

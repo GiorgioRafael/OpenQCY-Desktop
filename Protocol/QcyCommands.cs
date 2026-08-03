@@ -30,6 +30,37 @@ public sealed record QcyWearingDetection(
     }
 }
 
+public sealed record QcyEqualizerBand(ushort Frequency, double Gain, double Q, byte Type);
+
+public sealed record QcyEqualizerState(
+    byte PresetIndex,
+    double MasterGain,
+    IReadOnlyList<QcyEqualizerBand> Bands)
+{
+    public static QcyEqualizerState? ParseV2(ReadOnlySpan<byte> parameters)
+    {
+        if (parameters.Length < 3 || (parameters.Length - 3) % 7 != 0)
+        {
+            return null;
+        }
+
+        var bands = new List<QcyEqualizerBand>((parameters.Length - 3) / 7);
+        for (var offset = 3; offset < parameters.Length; offset += 7)
+        {
+            bands.Add(new QcyEqualizerBand(
+                BinaryPrimitives.ReadUInt16LittleEndian(parameters.Slice(offset, 2)),
+                BinaryPrimitives.ReadInt16LittleEndian(parameters.Slice(offset + 2, 2)) / 100d,
+                BinaryPrimitives.ReadUInt16LittleEndian(parameters.Slice(offset + 4, 2)) / 100d,
+                parameters[offset + 6]));
+        }
+
+        return new QcyEqualizerState(
+            parameters[0],
+            BinaryPrimitives.ReadInt16LittleEndian(parameters.Slice(1, 2)) / 100d,
+            bands);
+    }
+}
+
 public static class QcyCommands
 {
     public const byte InEarDetectionOpcode = 0x06;
