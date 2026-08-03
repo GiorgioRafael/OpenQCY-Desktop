@@ -1,6 +1,6 @@
 # Performance baseline
 
-Initial measurements were taken on Windows 11 x64 with the native WinUI shell, tray icon, local profile, and read-only Bluetooth discovery enabled.
+Initial measurements were taken on Windows 11 x64 with the native WinUI shell, tray icon, local profile, and the first Bluetooth discovery implementation. They predate the complete control session and must be repeated before the first tagged release.
 
 | Metric | Initial result |
 | --- | ---: |

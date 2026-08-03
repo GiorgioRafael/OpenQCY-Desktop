@@ -9,15 +9,20 @@ OpenQCY Desktop is an open-source Windows controller for QCY earbuds. The first 
 
 ## Project status
 
-OpenQCY Desktop is in an early native-shell milestone. The Windows settings window, notification-area panel, local profile persistence, and read-only Bluetooth discovery are working. Hardware writes remain disabled until commands are captured from the official mobile app and safely reproduced.
+OpenQCY Desktop now has a hardware-backed QCY MeloBuds N70 implementation. On August 3, 2026, the Windows app was validated against vendor ID `23877`, firmware `L 3.0.13 · R 3.0.13`:
+
+- active BLE discovery through QCY manufacturer data (`0x521C`)
+- connection to service `A001` and notification-based command responses
+- real firmware and left/right/case battery readings
+- state reads for ANC, game mode, sleep mode, LDAC, multipoint, wind detection, prompt volume, and auto power-off
+- wear detection enabled and disabled from the desktop UI, followed by device readback
+- a local profile that is reapplied when the N70 reconnects
 
 ![OpenQCY Desktop settings](docs/screenshots/main.png)
 
 ![OpenQCY Desktop notification-area panel](docs/screenshots/tray.png)
 
-Battery percentages and device-control responses shown in this milestone are realistic mock data. The local preferences are real and persist across restarts.
-
-Planned daily controls:
+Implemented daily controls:
 
 - Left, right, and case battery state
 - ANC, transparency, normal mode, submodes, and intensity
@@ -25,7 +30,9 @@ Planned daily controls:
 - Touch gesture mapping
 - Wear detection with automatic reapply on reconnect
 - LDAC, multipoint, game mode, sleep mode, and wind-noise handling
-- Prompt volume, disconnect timeout, and find-earbuds action
+- Prompt volume and auto power-off
+
+The N70 firmware tested here exposes touch mappings directly and supports the parametric EQ command, but does not expose the legacy `0000000B` preset characteristic. OpenQCY therefore enables custom ten-band curves and only enables direct preset switching when that characteristic is actually available. Not every write path has yet been exercised on every N70 firmware variant; unsupported capabilities stay disabled instead of sending guessed commands.
 
 Firmware flashing, account features, telemetry, ads, and store pages are explicitly out of scope.
 
@@ -50,13 +57,14 @@ Prerequisites:
 dotnet restore -r win-x64
 dotnet build -c Debug -p:Platform=x64 -p:RuntimeIdentifier=win-x64
 dotnet run -c Debug -p:Platform=x64 -p:RuntimeIdentifier=win-x64
+dotnet test tests/OpenQCY.Desktop.Tests.csproj -c Release
 ```
 
 The GitHub Actions pipeline builds and uploads a self-contained `win-x64` artifact. See [Architecture](docs/architecture.md), [Protocol research](docs/protocol-research.md), and the [performance baseline](docs/performance.md).
 
 ## Safety
 
-OpenQCY Desktop will never guess or brute-force commands against connected earbuds. Protocol bytes must be observed in a user-owned Bluetooth capture, documented, replayed in isolation, and covered by tests before they become available in the UI.
+OpenQCY Desktop never guesses or brute-forces commands against connected earbuds. A command must have public interoperability evidence or a redacted capture from user-owned hardware, deterministic tests, and a readback/acknowledgement path before it is enabled. See the exact N70 evidence in [Protocol research](docs/protocol-research.md).
 
 ## License
 

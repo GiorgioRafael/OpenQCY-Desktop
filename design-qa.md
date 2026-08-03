@@ -1,12 +1,12 @@
 # Design QA
 
-Result: **passed for the native-shell milestone**.
+Result: **passed for the hardware-backed desktop milestone**.
 
 ## Evidence
 
 - Reference: the supplied iOS Control Center screenshot.
 - Implementation: `docs/screenshots/tray.png` and `docs/screenshots/main.png`.
-- Comparison state: connected N70 mock state, wear detection enabled, ANC selected.
+- Runtime verification: a real N70 was discovered and connected; live firmware, batteries, ANC, EQ capability, and wearing-detection state rendered without clipping.
 
 ## Visible checks
 
@@ -14,7 +14,7 @@ Result: **passed for the native-shell milestone**.
 - The tray surface keeps the primary actions visible: connection, three battery values, noise mode, wear detection, game mode, open, and exit.
 - The main settings window uses a persistent sidebar and scrollable detail area with consistent 12–24 px spacing.
 - Text is legible at 100% scaling, labels are not clipped, and every primary control has a realistic state.
-- Shared state was changed from the tray and verified in the main window and local JSON profile.
+- Wearing detection was changed from the UI, confirmed by the N70, and persisted in the local JSON profile.
 - Navigation through Overview, Sound, Controls, Connection, and General completed without a crash.
 
 ## Accepted deviation
