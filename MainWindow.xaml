@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="OpenQCY_Desktop.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:tb="using:H.NotifyIcon"
+    xmlns:views="using:OpenQCY_Desktop.Views"
+    Title="OpenQCY Desktop"
+    mc:Ignorable="d">
+
+    <Grid Background="{StaticResource OpenQCYBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TitleBar x:Name="AppTitleBar" Title="OpenQCY Desktop" Subtitle="QCY MeloBuds N70">
+            <TitleBar.IconSource>
+                <ImageIconSource ImageSource="Assets/AppIcon-v2.png" />
+            </TitleBar.IconSource>
+        </TitleBar>
+
+        <Frame x:Name="RootFrame" Grid.Row="1" />
+
+        <tb:TaskbarIcon
+            x:Name="TrayIcon"
+            ToolTipText="OpenQCY Desktop · N70"
+            IconSource="Assets/AppIcon-v2.ico"
+            LeftClickCommand="{x:Bind ShowTrayFlyoutCommand}"
+            RightClickCommand="{x:Bind ShowTrayFlyoutCommand}"
+            NoLeftClickDelay="True">
+        </tb:TaskbarIcon>
+    </Grid>
+</Window>
