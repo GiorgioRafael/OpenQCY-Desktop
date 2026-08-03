@@ -27,7 +27,7 @@
         <tb:TaskbarIcon
             x:Name="TrayIcon"
             ToolTipText="OpenQCY Desktop · N70"
-            IconSource="Assets/TrayIcon.ico"
+            IconSource="/Assets/TrayIcon.ico"
             LeftClickCommand="{x:Bind ShowTrayFlyoutCommand}"
             RightClickCommand="{x:Bind ShowTrayFlyoutCommand}"
             NoLeftClickDelay="True">

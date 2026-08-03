@@ -29,7 +29,10 @@
     <Content Include="Assets\StoreLogo.png" />
     <Content Include="Assets\AppIcon-v2.ico" />
     <Content Include="Assets\AppIcon-v2.png" />
-    <Content Include="Assets\TrayIcon.ico" />
+    <Content Include="Assets\TrayIcon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
   </ItemGroup>
 
