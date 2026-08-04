@@ -5,12 +5,28 @@ using OpenQCY_Desktop.Protocol;
 
 Console.OutputEncoding = Encoding.UTF8;
 var willDisableWearDetection = args.Contains("--disable-wear-detection", StringComparer.OrdinalIgnoreCase);
+var windowsBatteryOnly = args.Contains("--windows-battery", StringComparer.OrdinalIgnoreCase);
 Console.WriteLine(willDisableWearDetection
     ? "OpenQCY Probe · diagnóstico e alteração solicitada da detecção de uso"
     : "OpenQCY Probe · diagnóstico local somente leitura");
 Console.WriteLine("Abra o estojo e mantenha os dois fones próximos ao computador.");
 
 var transport = new WindowsBluetoothTransport();
+if (windowsBatteryOnly)
+{
+    var windowsBattery = await transport.FindWindowsBatteryAsync();
+    if (windowsBattery is null)
+    {
+        Console.Error.WriteLine("O Windows não forneceu uma leitura de bateria para o N70.");
+        return 3;
+    }
+
+    Console.WriteLine(
+        $"Cache do Windows: {windowsBattery.DeviceName} · {windowsBattery.Percentage}% · " +
+        $"conectado: {YesNo(windowsBattery.IsConnected)}");
+    return 0;
+}
+
 var devices = await transport.ScanForQcyDevicesAsync(TimeSpan.FromSeconds(12));
 if (devices.Count == 0)
 {

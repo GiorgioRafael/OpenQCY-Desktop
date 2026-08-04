@@ -14,6 +14,7 @@ OpenQCY Desktop now has a hardware-backed QCY MeloBuds N70 implementation. On Au
 - active BLE discovery through QCY manufacturer data (`0x521C`)
 - connection to service `A001` and notification-based command responses
 - real firmware and left/right/case battery readings
+- automatic reconnect from the locally remembered control address, cached Windows GATT service, or the next N70 advertisement
 - state reads for ANC, game mode, sleep mode, LDAC, multipoint, wind detection, prompt volume, and auto power-off
 - wear detection enabled and disabled from the desktop UI, followed by device readback
 - a local profile that is reapplied when the N70 reconnects
@@ -25,7 +26,7 @@ OpenQCY Desktop now has a hardware-backed QCY MeloBuds N70 implementation. On Au
 Implemented daily controls:
 
 - Left, right, and case battery state
-- ANC, transparency, normal mode, submodes, and intensity
+- ANC, transparency, normal mode, and the five real N70 ANC scenes (adaptive, indoor, commuting, noisy, and anti-wind)
 - EQ presets and a custom multi-band curve
 - Touch gesture mapping
 - Wear detection with automatic reapply on reconnect

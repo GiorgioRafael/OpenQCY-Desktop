@@ -12,6 +12,7 @@ O OpenQCY Desktop já possui uma implementação real para o QCY MeloBuds N70. E
 - descoberta BLE ativa pelos dados do fabricante QCY (`0x521C`)
 - conexão ao serviço `A001` e respostas por notificações
 - leitura real do firmware e das baterias esquerda, direita e do estojo
+- reconexão automática pelo endereço de controle salvo localmente, pelo serviço GATT em cache ou pelo próximo anúncio do N70
 - leitura de ANC, modo jogo, modo sono, LDAC, multiponto, vento, volume dos avisos e desligamento automático
 - detecção de uso ligada e desligada pela interface do PC, com confirmação lida do fone
 - perfil local reaplicado quando o N70 reconecta
@@ -23,7 +24,7 @@ O OpenQCY Desktop já possui uma implementação real para o QCY MeloBuds N70. E
 Controles cotidianos implementados:
 
 - Bateria dos lados esquerdo e direito e do estojo
-- ANC, transparência, modo normal, submodos e intensidade
+- ANC, transparência, modo normal e os cinco modos reais do N70 (adaptativo, ambiente interno, deslocamento, ambiente ruidoso e anti-vento)
 - Presets e curva personalizada de múltiplas bandas
 - Personalização dos gestos de toque
 - Detecção de uso com reaplicação automática ao reconectar
