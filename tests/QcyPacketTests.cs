@@ -102,4 +102,49 @@ public sealed class QcyPacketTests
             new byte[] { 0xFF, 0x03, 0x1D, 0x01, 0x0F },
             QcyCommands.SetPromptVolume(15));
     }
+
+    [TestMethod]
+    [DataRow(QcyNoiseCancellationMode.Adaptive, 0x05, 0x00)]
+    [DataRow(QcyNoiseCancellationMode.Indoor, 0x01, 0x02)]
+    [DataRow(QcyNoiseCancellationMode.Commuting, 0x02, 0x02)]
+    [DataRow(QcyNoiseCancellationMode.Noisy, 0x03, 0x02)]
+    [DataRow(QcyNoiseCancellationMode.AntiWind, 0x04, 0x00)]
+    public void NoiseCancellationPresetsUseN70AdvancedAncLayout(
+        QcyNoiseCancellationMode mode,
+        int subScene,
+        int noiseValue)
+    {
+        CollectionAssert.AreEqual(
+            new byte[] { 0xFF, 0x05, 0x17, 0x03, 0x01, (byte)subScene, (byte)noiseValue },
+            QcyCommands.SetNoiseMode(QcyNoiseMode.NoiseCancellation, mode));
+    }
+
+    [TestMethod]
+    public void NoiseControlStatePreservesCancellationPreset()
+    {
+        var state = QcyNoiseControlState.Parse([0x01, 0x03, 0x02]);
+
+        Assert.IsNotNull(state);
+        Assert.AreEqual(QcyNoiseMode.NoiseCancellation, state.Mode);
+        Assert.AreEqual(QcyNoiseCancellationMode.Noisy, state.CancellationMode);
+        CollectionAssert.AreEqual(new byte[] { 0x01, 0x03, 0x02 }, state.ToParameters());
+    }
+
+    [TestMethod]
+    [DataRow(QcyNoiseMode.Transparency, 0x03, 0x01, 0x04)]
+    [DataRow(QcyNoiseMode.Normal, 0x02, 0x00, 0x00)]
+    public void NoiseControlTopLevelModesUseExactN70Layout(
+        QcyNoiseMode mode,
+        int modeValue,
+        int subScene,
+        int noiseValue)
+    {
+        CollectionAssert.AreEqual(
+            new byte[]
+            {
+                0xFF, 0x05, 0x17, 0x03,
+                (byte)modeValue, (byte)subScene, (byte)noiseValue,
+            },
+            QcyCommands.SetNoiseMode(mode));
+    }
 }

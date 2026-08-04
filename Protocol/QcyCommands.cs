@@ -9,6 +9,92 @@ public enum QcyNoiseMode
     Normal,
 }
 
+public enum QcyNoiseCancellationMode
+{
+    Adaptive,
+    Indoor,
+    Commuting,
+    Noisy,
+    AntiWind,
+}
+
+public sealed record QcyNoiseControlState(
+    QcyNoiseMode Mode,
+    QcyNoiseCancellationMode? CancellationMode,
+    byte SubScene,
+    byte NoiseValue)
+{
+    public static QcyNoiseControlState Create(
+        QcyNoiseMode mode,
+        QcyNoiseCancellationMode cancellationMode = QcyNoiseCancellationMode.Adaptive) =>
+        mode switch
+        {
+            QcyNoiseMode.NoiseCancellation => cancellationMode switch
+            {
+                QcyNoiseCancellationMode.Adaptive => new(mode, cancellationMode, 0x05, 0x00),
+                QcyNoiseCancellationMode.Indoor => new(mode, cancellationMode, 0x01, 0x02),
+                QcyNoiseCancellationMode.Commuting => new(mode, cancellationMode, 0x02, 0x02),
+                QcyNoiseCancellationMode.Noisy => new(mode, cancellationMode, 0x03, 0x02),
+                QcyNoiseCancellationMode.AntiWind => new(mode, cancellationMode, 0x04, 0x00),
+                _ => throw new ArgumentOutOfRangeException(nameof(cancellationMode)),
+            },
+            QcyNoiseMode.Transparency => new(mode, null, 0x01, 0x04),
+            QcyNoiseMode.Normal => new(mode, null, 0x00, 0x00),
+            _ => throw new ArgumentOutOfRangeException(nameof(mode)),
+        };
+
+    public static QcyNoiseControlState? Parse(ReadOnlySpan<byte> parameters)
+    {
+        if (parameters.Length < 3)
+        {
+            return null;
+        }
+
+        var mode = parameters[0];
+        var subScene = parameters[1];
+        var noiseValue = parameters[2];
+        return mode switch
+        {
+            0x01 => new QcyNoiseControlState(
+                QcyNoiseMode.NoiseCancellation,
+                subScene switch
+                {
+                    0x01 => QcyNoiseCancellationMode.Indoor,
+                    0x02 => QcyNoiseCancellationMode.Commuting,
+                    0x03 => QcyNoiseCancellationMode.Noisy,
+                    0x04 => QcyNoiseCancellationMode.AntiWind,
+                    0x05 => QcyNoiseCancellationMode.Adaptive,
+                    _ => null,
+                },
+                subScene,
+                noiseValue),
+            0x02 when subScene == 0x00 => new QcyNoiseControlState(
+                QcyNoiseMode.Normal,
+                null,
+                subScene,
+                noiseValue),
+            0x03 => new QcyNoiseControlState(
+                QcyNoiseMode.Transparency,
+                null,
+                subScene,
+                noiseValue),
+            _ => null,
+        };
+    }
+
+    public byte[] ToParameters()
+    {
+        var mode = Mode switch
+        {
+            QcyNoiseMode.NoiseCancellation => (byte)0x01,
+            QcyNoiseMode.Normal => (byte)0x02,
+            QcyNoiseMode.Transparency => (byte)0x03,
+            _ => throw new ArgumentOutOfRangeException(nameof(Mode)),
+        };
+        return [mode, SubScene, NoiseValue];
+    }
+}
+
 public sealed record QcyWearingDetection(
     bool Enabled,
     byte MusicAction,
@@ -82,19 +168,10 @@ public static class QcyCommands
         };
     }
 
-    public static byte[] SetNoiseMode(QcyNoiseMode mode)
-    {
-        // Defaults published for N70 vendor IDs 23872/23877.
-        ReadOnlySpan<byte> parameters = mode switch
-        {
-            QcyNoiseMode.NoiseCancellation => [0x01, 0x05, 0x00], // adaptive ANC
-            QcyNoiseMode.Transparency => [0x03, 0x01, 0x04],
-            QcyNoiseMode.Normal => [0x02, 0x00, 0x00],
-            _ => throw new ArgumentOutOfRangeException(nameof(mode)),
-        };
-
-        return QcyPacket.Pack(0x17, parameters);
-    }
+    public static byte[] SetNoiseMode(
+        QcyNoiseMode mode,
+        QcyNoiseCancellationMode cancellationMode = QcyNoiseCancellationMode.Adaptive) =>
+        QcyPacket.Pack(0x17, QcyNoiseControlState.Create(mode, cancellationMode).ToParameters());
 
     public static byte[] SetGameMode(bool enabled) => Toggle(0x09, enabled);
     public static byte[] SetSleepMode(bool enabled) => Toggle(0x10, enabled);

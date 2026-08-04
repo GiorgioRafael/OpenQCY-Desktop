@@ -114,8 +114,29 @@ public sealed class QcyDeviceClient : IAsyncDisposable
         await WriteAndConfirmAsync(opcode, packet, cancellationToken);
     }
 
-    public Task SetNoiseModeAsync(QcyNoiseMode mode, CancellationToken cancellationToken = default) =>
-        WriteAndConfirmAsync(0x17, QcyCommands.SetNoiseMode(mode), cancellationToken);
+    public async Task SetNoiseModeAsync(
+        QcyNoiseMode mode,
+        QcyNoiseCancellationMode cancellationMode = QcyNoiseCancellationMode.Adaptive,
+        CancellationToken cancellationToken = default)
+    {
+        var expected = QcyNoiseControlState.Create(mode, cancellationMode);
+        var response = await SendAndAwaitAsync(
+            0x17,
+            QcyCommands.SetNoiseMode(mode, cancellationMode),
+            cancellationToken);
+        var confirmed = response is null ? null : QcyNoiseControlState.Parse(response);
+        if (confirmed != expected)
+        {
+            response = await QueryAsync(0x17, cancellationToken);
+            confirmed = response is null ? null : QcyNoiseControlState.Parse(response);
+        }
+
+        if (confirmed != expected)
+        {
+            throw new InvalidOperationException(
+                $"O N70 respondeu {FormatNoiseState(confirmed)}, mas o aplicativo solicitou {FormatNoiseState(expected)}.");
+        }
+    }
 
     public Task SetGameModeAsync(bool enabled, CancellationToken cancellationToken = default) =>
         WriteAndConfirmAsync(0x09, QcyCommands.SetGameMode(enabled), cancellationToken);
@@ -192,16 +213,17 @@ public sealed class QcyDeviceClient : IAsyncDisposable
         RequireCharacteristic(QcyUuids.Command, canWrite: true);
         RequireCharacteristic(QcyUuids.Notification, canNotify: true);
         await _connection.SubscribeAsync(QcyUuids.Notification, cancellationToken);
+        if (_connection.Characteristics.Any(info => info.Uuid == QcyUuids.Battery && info.CanNotify))
+        {
+            await _connection.SubscribeAsync(QcyUuids.Battery, cancellationToken);
+        }
+
         await RefreshAsync(cancellationToken);
     }
 
     private async Task ReadDirectCharacteristicsAsync(CancellationToken cancellationToken)
     {
-        var battery = await TryReadAsync(QcyUuids.Battery, cancellationToken);
-        if (battery is { Length: >= 2 })
-        {
-            UpdateState(state => state with { Battery = ParseBattery(battery) });
-        }
+        await RefreshBatteryAsync(cancellationToken);
 
         var version = await TryReadAsync(QcyUuids.FirmwareVersion, cancellationToken);
         if (version is { Length: >= 3 })
@@ -216,6 +238,18 @@ public sealed class QcyDeviceClient : IAsyncDisposable
         {
             UpdateState(state => state with { EqualizerPreset = equalizer[0] });
         }
+    }
+
+    public async Task RefreshBatteryAsync(CancellationToken cancellationToken = default)
+    {
+        var battery = await TryReadAsync(QcyUuids.Battery, cancellationToken);
+        if (battery is { Length: >= 2 })
+        {
+            UpdateState(state => state with { Battery = ParseBattery(battery) });
+            return;
+        }
+
+        await QueryAsync(0x2F, cancellationToken);
     }
 
     private async Task ReadKeyFunctionsAsync(CancellationToken cancellationToken)
@@ -314,6 +348,16 @@ public sealed class QcyDeviceClient : IAsyncDisposable
 
     private void Connection_ValueChanged(object? sender, GattValueChangedEventArgs eventArgs)
     {
+        if (eventArgs.CharacteristicUuid == QcyUuids.Battery)
+        {
+            if (eventArgs.Value.Length >= 2)
+            {
+                UpdateState(state => state with { Battery = ParseBattery(eventArgs.Value) });
+            }
+
+            return;
+        }
+
         if (eventArgs.CharacteristicUuid != QcyUuids.Notification)
         {
             return;
@@ -372,7 +416,11 @@ public sealed class QcyDeviceClient : IAsyncDisposable
                 }
                 break;
             case 0x17 when parameters.Length >= 3:
-                UpdateState(state => state with { NoiseMode = ParseNoiseMode(parameters) });
+                var noiseControl = QcyNoiseControlState.Parse(parameters);
+                if (noiseControl is not null)
+                {
+                    UpdateState(state => state with { NoiseControl = noiseControl });
+                }
                 break;
             case 0x09 when parameters.Length >= 1:
                 UpdateState(state => state with { GameModeEnabled = parameters[0] == 0x01 });
@@ -467,13 +515,10 @@ public sealed class QcyDeviceClient : IAsyncDisposable
             parameters.Length > 2 && (parameters[2] & 0x80) != 0);
     }
 
-    private static QcyNoiseMode ParseNoiseMode(ReadOnlySpan<byte> parameters) =>
-        parameters[0] switch
-        {
-            0x02 when parameters[1] == 0x00 => QcyNoiseMode.Normal,
-            0x03 => QcyNoiseMode.Transparency,
-            _ => QcyNoiseMode.NoiseCancellation,
-        };
+    private static string FormatNoiseState(QcyNoiseControlState? state) =>
+        state is null
+            ? "um estado desconhecido"
+            : Convert.ToHexString(state.ToParameters());
 
     private static string FormatVersion(ReadOnlySpan<byte> value) =>
         value.Length >= 6

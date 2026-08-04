@@ -26,7 +26,8 @@ public sealed record QcyDeviceState
     public bool? WearDetectionEnabled { get; init; }
     public QcyWearDetectionProtocol WearDetectionProtocol { get; init; }
     public QcyWearingDetection? WearingDetection { get; init; }
-    public QcyNoiseMode? NoiseMode { get; init; }
+    public QcyNoiseControlState? NoiseControl { get; init; }
+    public QcyNoiseMode? NoiseMode => NoiseControl?.Mode;
     public bool? GameModeEnabled { get; init; }
     public bool? SleepModeEnabled { get; init; }
     public bool? LdacEnabled { get; init; }
