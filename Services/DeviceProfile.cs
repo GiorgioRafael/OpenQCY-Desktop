@@ -2,8 +2,12 @@ namespace OpenQCY_Desktop.Services;
 
 public sealed class DeviceProfile
 {
-    public int ProfileVersion { get; set; } = 2;
+    public int ProfileVersion { get; set; } = 3;
+    public ulong? KnownBluetoothAddress { get; set; }
+    public ulong? KnownControlAddress { get; set; }
+    public ulong? KnownOtherAddress { get; set; }
     public string SelectedNoiseMode { get; set; } = "Cancelamento";
+    public string SelectedNoiseCancellationMode { get; set; } = "Adaptativo";
     public string SelectedEqualizerPreset { get; set; } = "Padrão";
     public bool WearDetection { get; set; }
     public bool LdacEnabled { get; set; } = true;

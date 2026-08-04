@@ -47,6 +47,12 @@ public sealed class ProfileStore
             }
         }
 
+        if (profile.ProfileVersion < 3)
+        {
+            profile.ProfileVersion = 3;
+            profile.SelectedNoiseCancellationMode = "Adaptativo";
+        }
+
         profile.EqBands = profile.EqBands
             .Select(value => Math.Clamp(value, -8, 8))
             .ToArray();

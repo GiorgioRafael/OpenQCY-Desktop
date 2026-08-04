@@ -2,6 +2,9 @@ namespace OpenQCY_Desktop.Bluetooth;
 
 public interface IBluetoothTransport
 {
+    Task<BluetoothBatteryInfo?> FindWindowsBatteryAsync(
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<BluetoothDeviceInfo>> FindPairedQcyDevicesAsync(
         CancellationToken cancellationToken = default);
 

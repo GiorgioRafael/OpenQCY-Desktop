@@ -12,6 +12,13 @@ public sealed partial class MainPage : Page
     public MainPage()
     {
         InitializeComponent();
+        Loaded += MainPage_Loaded;
+    }
+
+    private async void MainPage_Loaded(object sender, RoutedEventArgs e)
+    {
+        Loaded -= MainPage_Loaded;
+        await ViewModel.StartAsync();
     }
 
     private void SectionButton_Click(object sender, RoutedEventArgs e)

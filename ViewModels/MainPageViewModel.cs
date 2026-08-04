@@ -36,11 +36,31 @@ public partial class MainPageViewModel : ObservableObject
             ["Modo de ruído"] = 8,
         };
 
+    private static readonly IReadOnlyDictionary<string, QcyNoiseCancellationMode> NoiseCancellationModeIds =
+        new Dictionary<string, QcyNoiseCancellationMode>(StringComparer.Ordinal)
+        {
+            ["Adaptativo"] = QcyNoiseCancellationMode.Adaptive,
+            ["Ambiente interno"] = QcyNoiseCancellationMode.Indoor,
+            ["Deslocamento"] = QcyNoiseCancellationMode.Commuting,
+            ["Ambiente ruidoso"] = QcyNoiseCancellationMode.Noisy,
+            ["Anti-vento"] = QcyNoiseCancellationMode.AntiWind,
+        };
+
     private readonly ProfileStore _profileStore = new();
     private readonly IBluetoothTransport _bluetoothTransport = new WindowsBluetoothTransport();
     private IBluetoothDeviceConnection? _connection;
     private QcyDeviceClient? _deviceClient;
     private CancellationTokenSource? _promptVolumeDebounce;
+    private CancellationTokenSource? _noiseControlCancellation;
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _batteryRefreshTimer;
+    private QcyNoiseControlState? _pendingNoiseControl;
+    private long _noiseControlRequestVersion;
+    private ulong? _knownBluetoothAddress;
+    private ulong? _knownControlAddress;
+    private ulong? _knownOtherAddress;
+    private bool _isAggregateBatteryReading;
+    private DateTimeOffset _lastBatteryRefresh = DateTimeOffset.MinValue;
+    private bool _hasStarted;
     private bool _isLoading;
     private bool _isSynchronizingDevice;
 
@@ -50,12 +70,18 @@ public partial class MainPageViewModel : ObservableObject
     }
 
     public IReadOnlyList<string> NoiseModes { get; } = ["Cancelamento", "Transparência", "Normal"];
+    public IReadOnlyList<string> NoiseCancellationModes { get; } = [.. NoiseCancellationModeIds.Keys];
     public IReadOnlyList<string> EqualizerPresets { get; } = [.. EqualizerPresetIds.Keys, "Personalizado"];
     public IReadOnlyList<string> TouchActions { get; } = [.. TouchActionIds.Keys];
     public IReadOnlyList<string> DisconnectTimeouts { get; } = ["Nunca", "5 minutos", "15 minutos", "30 minutos", "1 hora"];
 
     [ObservableProperty]
     public partial string SelectedNoiseMode { get; set; } = "Cancelamento";
+
+    [ObservableProperty]
+    public partial string SelectedNoiseCancellationMode { get; set; } = "Adaptativo";
+
+    public bool IsNoiseCancellationSelected => SelectedNoiseMode == "Cancelamento";
 
     [ObservableProperty]
     public partial string SelectedEqualizerPreset { get; set; } = "Padrão";
@@ -156,6 +182,9 @@ public partial class MainPageViewModel : ObservableObject
     public partial string CaseBatteryDisplay { get; set; } = "—";
 
     [ObservableProperty]
+    public partial string BatteryStatus { get; set; } = "Procurando uma leitura recente do N70";
+
+    [ObservableProperty]
     public partial double LeftBattery { get; set; }
 
     [ObservableProperty]
@@ -185,6 +214,22 @@ public partial class MainPageViewModel : ObservableObject
     [ObservableProperty]
     public partial bool KeyFunctionsSupported { get; set; }
 
+    public async Task StartAsync()
+    {
+        if (_hasStarted)
+        {
+            return;
+        }
+
+        _hasStarted = true;
+        _batteryRefreshTimer = App.DispatcherQueue.CreateTimer();
+        _batteryRefreshTimer.Interval = TimeSpan.FromSeconds(30);
+        _batteryRefreshTimer.IsRepeating = true;
+        _batteryRefreshTimer.Tick += BatteryRefreshTimer_Tick;
+        _batteryRefreshTimer.Start();
+        await DiscoverDevicesAsync();
+    }
+
     [RelayCommand]
     private async Task DiscoverDevicesAsync()
     {
@@ -195,33 +240,66 @@ public partial class MainPageViewModel : ObservableObject
 
         IsBusy = true;
         var desiredProfile = CreateProfile();
+        BluetoothBatteryInfo? windowsBattery = null;
         try
         {
             await DisconnectCoreAsync(updateStatus: false);
-            DiscoveryStatus = "Procurando anúncios BLE do N70…";
-            ConnectionStatus = "Procurando canal de controle";
+            windowsBattery = await _bluetoothTransport.FindWindowsBatteryAsync();
+            if (windowsBattery is not null)
+            {
+                DeviceName = windowsBattery.DeviceName;
+                LeftBattery = windowsBattery.Percentage;
+                RightBattery = windowsBattery.Percentage;
+                CaseBattery = 0;
+                _isAggregateBatteryReading = true;
+                UpdateBatteryDisplays();
+                BatteryStatus = windowsBattery.IsConnected
+                    ? "Estimativa geral fornecida pelo Windows; conectando para separar os lados"
+                    : "Última estimativa geral armazenada pelo Windows";
+            }
 
-            var devices = await _bluetoothTransport.ScanForQcyDevicesAsync(TimeSpan.FromSeconds(8));
-            var target = devices.FirstOrDefault(device => QcyUuids.IsN70(device.VendorId));
+            DiscoveryStatus = "Procurando o N70 já conhecido pelo Windows…";
+            ConnectionStatus = "Procurando canal de controle salvo";
+
+            var knownDevices = (await _bluetoothTransport.FindPairedQcyDevicesAsync())
+                .Where(device => QcyUuids.IsN70(device.VendorId))
+                .ToList();
+            var rememberedDevice = CreateRememberedDevice(desiredProfile);
+            if (rememberedDevice is not null)
+            {
+                knownDevices.Insert(0, rememberedDevice);
+            }
+
+            var target = await ConnectFirstAvailableAsync(knownDevices);
             if (target is null)
             {
-                throw new InvalidOperationException(
-                    "O N70 não anunciou o canal de controle. Abra o estojo, retire os fones e tente novamente.");
+                DiscoveryStatus = "O N70 não estava no cache; procurando anúncios BLE…";
+                ConnectionStatus = "Procurando anúncio do canal de controle";
+                var advertisedDevices = await _bluetoothTransport.ScanForQcyDevicesAsync(TimeSpan.FromSeconds(8));
+                var advertisedN70 = advertisedDevices
+                    .Where(device => QcyUuids.IsN70(device.VendorId))
+                    .ToArray();
+                target = await ConnectFirstAvailableAsync(advertisedN70);
+                if (target is null)
+                {
+                    throw new InvalidOperationException(
+                        "O N70 não apareceu no cache do Windows nem anunciou o canal de controle. Abra o estojo ou retire um fone e tente novamente.");
+                }
             }
 
             DeviceName = target.Name;
-            LeftBattery = target.LeftBattery;
-            RightBattery = target.RightBattery;
-            CaseBattery = target.CaseBattery;
-            UpdateBatteryDisplays();
-            ConnectionStatus = "Conectando ao serviço QCY A001";
-            DiscoveryStatus = $"N70 encontrado com sinal de {target.SignalStrength} dBm";
+            RememberDevice(target);
+            if (target.SignalStrength != short.MinValue)
+            {
+                _isAggregateBatteryReading = false;
+                LeftBattery = target.LeftBattery;
+                RightBattery = target.RightBattery;
+                CaseBattery = target.CaseBattery;
+                UpdateBatteryDisplays();
+                BatteryStatus = "Bateria detectada pelo anúncio do N70";
+            }
 
-            _connection = await _bluetoothTransport.ConnectAsync(target);
-            ConnectionStatus = "Lendo configurações do N70";
-            _deviceClient = await QcyDeviceClient.CreateAsync(_connection);
-            _deviceClient.StateChanged += DeviceClient_StateChanged;
-            ApplyDeviceState(_deviceClient.State);
+            ApplyDeviceState(_deviceClient!.State);
             UpdateCapabilities();
 
             if (desiredProfile.AutoApplyEnabled)
@@ -232,6 +310,8 @@ public partial class MainPageViewModel : ObservableObject
 
             ApplyDeviceState(_deviceClient.State);
             DiscoveryStatus = "Canal de controle QCY conectado e validado";
+            BatteryStatus = "Atualiza automaticamente enquanto o controle estiver conectado";
+            Save();
             SaveStatus = desiredProfile.AutoApplyEnabled
                 ? "Perfil confirmado pelo N70"
                 : "Estado atual lido do N70";
@@ -242,6 +322,11 @@ public partial class MainPageViewModel : ObservableObject
             ConnectionStatus = "Controle desconectado";
             DiscoveryStatus = FriendlyError(exception);
             SaveStatus = "As preferências continuam salvas neste PC";
+            BatteryStatus = windowsBattery is not null
+                ? "Estimativa geral do Windows; abra o estojo para ler cada lado e o estojo"
+                : HasBatteryReading
+                ? "Exibindo a última leitura recebida do N70"
+                : "Sem leitura — abra o estojo ou retire um fone para anunciar a bateria";
         }
         finally
         {
@@ -338,11 +423,39 @@ public partial class MainPageViewModel : ObservableObject
         SaveStatus = "Equalizador zerado — clique em Aplicar";
     }
 
-    public void Shutdown() => _ = DisconnectCoreAsync(updateStatus: false);
+    public void Shutdown()
+    {
+        _batteryRefreshTimer?.Stop();
+        _ = DisconnectCoreAsync(updateStatus: false);
+    }
 
-    partial void OnSelectedNoiseModeChanged(string value) => PersistAndRun(
-        client => client.SetNoiseModeAsync(ToNoiseMode(value)),
-        "Controle de ruído confirmado pelo N70");
+    partial void OnSelectedNoiseModeChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsNoiseCancellationSelected));
+        if (value is null || !NoiseModes.Contains(value, StringComparer.Ordinal) ||
+            _isLoading || _isSynchronizingDevice)
+        {
+            return;
+        }
+
+        Save();
+        QueueNoiseControlChange();
+    }
+
+    partial void OnSelectedNoiseCancellationModeChanged(string value)
+    {
+        if (value is null || !NoiseCancellationModeIds.ContainsKey(value) ||
+            _isLoading || _isSynchronizingDevice)
+        {
+            return;
+        }
+
+        Save();
+        if (IsNoiseCancellationSelected)
+        {
+            QueueNoiseControlChange();
+        }
+    }
 
     partial void OnSelectedEqualizerPresetChanged(string value)
     {
@@ -425,10 +538,12 @@ public partial class MainPageViewModel : ObservableObject
             await client.SetWearDetectionAsync(profile.WearDetection);
         }
 
-        var noiseMode = ToNoiseMode(profile.SelectedNoiseMode);
-        if (state.NoiseMode.HasValue && state.NoiseMode != noiseMode)
+        var noiseControl = ToNoiseControl(profile.SelectedNoiseMode, profile.SelectedNoiseCancellationMode);
+        if (state.NoiseControl is not null && state.NoiseControl != noiseControl)
         {
-            await client.SetNoiseModeAsync(noiseMode);
+            await client.SetNoiseModeAsync(
+                noiseControl.Mode,
+                noiseControl.CancellationMode ?? QcyNoiseCancellationMode.Adaptive);
         }
 
         if (state.GameModeEnabled.HasValue && state.GameModeEnabled != profile.GameModeEnabled)
@@ -511,10 +626,20 @@ public partial class MainPageViewModel : ObservableObject
             ConnectionStatus = state.IsConnected ? "Controle QCY conectado" : "Controle desconectado";
             DeviceName = state.DeviceName;
             FirmwareVersion = state.FirmwareVersion ?? "—";
+            if (state.Battery.Left.HasValue || state.Battery.Right.HasValue || state.Battery.Case.HasValue)
+            {
+                _isAggregateBatteryReading = false;
+            }
+
             LeftBattery = state.Battery.Left ?? LeftBattery;
             RightBattery = state.Battery.Right ?? RightBattery;
             CaseBattery = state.Battery.Case ?? CaseBattery;
             UpdateBatteryDisplays();
+            if (state.Battery.Left.HasValue || state.Battery.Right.HasValue || state.Battery.Case.HasValue)
+            {
+                BatteryStatus = "Atualiza automaticamente enquanto o controle estiver conectado";
+            }
+
             WearDetectionSupported = state.WearDetectionProtocol != QcyWearDetectionProtocol.Unknown;
 
             if (state.WearDetectionEnabled.HasValue)
@@ -522,9 +647,16 @@ public partial class MainPageViewModel : ObservableObject
                 WearDetection = state.WearDetectionEnabled.Value;
             }
 
-            if (state.NoiseMode.HasValue)
+            if (state.NoiseControl is not null &&
+                (_pendingNoiseControl is null || state.NoiseControl == _pendingNoiseControl))
             {
-                SelectedNoiseMode = FromNoiseMode(state.NoiseMode.Value);
+                if (state.NoiseControl.CancellationMode.HasValue)
+                {
+                    SelectedNoiseCancellationMode = FromNoiseCancellationMode(
+                        state.NoiseControl.CancellationMode.Value);
+                }
+
+                SelectedNoiseMode = FromNoiseMode(state.NoiseControl.Mode);
             }
 
             GameModeEnabled = state.GameModeEnabled ?? GameModeEnabled;
@@ -616,6 +748,102 @@ public partial class MainPageViewModel : ObservableObject
         RunWhenConnected(action, successMessage);
     }
 
+    private void QueueNoiseControlChange()
+    {
+        if (!TryGetSelectedNoiseControl(out var requested) || !CanSendToDevice)
+        {
+            return;
+        }
+
+        var version = Interlocked.Increment(ref _noiseControlRequestVersion);
+        _pendingNoiseControl = requested;
+        _noiseControlCancellation?.Cancel();
+        _noiseControlCancellation?.Dispose();
+        _noiseControlCancellation = new CancellationTokenSource();
+        _ = ApplyNoiseControlAsync(requested, version, _noiseControlCancellation.Token);
+    }
+
+    private async Task ApplyNoiseControlAsync(
+        QcyNoiseControlState requested,
+        long version,
+        CancellationToken cancellationToken)
+    {
+        var client = _deviceClient;
+        if (client is null || !client.State.IsConnected)
+        {
+            return;
+        }
+
+        try
+        {
+            SaveStatus = $"Aplicando {NoiseControlDisplayName(requested)}…";
+            await client.SetNoiseModeAsync(
+                requested.Mode,
+                requested.CancellationMode ?? QcyNoiseCancellationMode.Adaptive,
+                cancellationToken);
+            if (version != Volatile.Read(ref _noiseControlRequestVersion))
+            {
+                return;
+            }
+
+            if (client.State.NoiseControl != requested)
+            {
+                throw new InvalidOperationException("A leitura final não corresponde à última escolha.");
+            }
+
+            _pendingNoiseControl = null;
+            ApplyDeviceState(client.State);
+            SaveStatus = $"{NoiseControlDisplayName(requested)} confirmado pelo N70";
+        }
+        catch (OperationCanceledException) when (version != Volatile.Read(ref _noiseControlRequestVersion))
+        {
+        }
+        catch (Exception exception)
+        {
+            if (version != Volatile.Read(ref _noiseControlRequestVersion))
+            {
+                return;
+            }
+
+            _pendingNoiseControl = null;
+            ApplyDeviceState(client.State);
+            SaveStatus = $"Não confirmado pelo N70: {FriendlyError(exception)}";
+        }
+    }
+
+    private async void BatteryRefreshTimer_Tick(
+        Microsoft.UI.Dispatching.DispatcherQueueTimer sender,
+        object args)
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        var client = _deviceClient;
+        if (client?.State.IsConnected == true)
+        {
+            if (DateTimeOffset.UtcNow - _lastBatteryRefresh < TimeSpan.FromMinutes(1))
+            {
+                return;
+            }
+
+            try
+            {
+                await client.RefreshBatteryAsync();
+                _lastBatteryRefresh = DateTimeOffset.UtcNow;
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                BatteryStatus = "A leitura automática falhou; tentando novamente em breve";
+            }
+
+            return;
+        }
+
+        await DiscoverDevicesAsync();
+    }
+
     private void RunWhenConnected(Func<QcyDeviceClient, Task> action, string successMessage)
     {
         if (CanSendToDevice)
@@ -661,9 +889,74 @@ public partial class MainPageViewModel : ObservableObject
         }
     }
 
+    private async Task<BluetoothDeviceInfo?> ConnectFirstAvailableAsync(
+        IEnumerable<BluetoothDeviceInfo> candidates)
+    {
+        foreach (var candidate in candidates.DistinctBy(device =>
+                     (device.BluetoothAddress, device.ControlAddress, device.OtherAddress)))
+        {
+            try
+            {
+                ConnectionStatus = "Conectando ao serviço QCY A001";
+                _connection = await _bluetoothTransport.ConnectAsync(candidate);
+                ConnectionStatus = "Lendo configurações e bateria do N70";
+                _deviceClient = await QcyDeviceClient.CreateAsync(_connection);
+                _deviceClient.StateChanged += DeviceClient_StateChanged;
+                return candidate;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+                await DisconnectCoreAsync(updateStatus: false);
+            }
+        }
+
+        return null;
+    }
+
+    private BluetoothDeviceInfo? CreateRememberedDevice(DeviceProfile profile)
+    {
+        var primaryAddress = profile.KnownBluetoothAddress ??
+            profile.KnownControlAddress ??
+            profile.KnownOtherAddress;
+        return primaryAddress is null
+            ? null
+            : new BluetoothDeviceInfo(
+                QcyAdvertisement.FormatAddress(primaryAddress.Value),
+                DeviceName,
+                primaryAddress.Value,
+                profile.KnownControlAddress,
+                profile.KnownOtherAddress,
+                QcyUuids.N70BlackVendorId,
+                short.MinValue,
+                0,
+                0,
+                0,
+                false,
+                false,
+                false,
+                DateTimeOffset.UtcNow);
+    }
+
+    private void RememberDevice(BluetoothDeviceInfo device)
+    {
+        if (device.BluetoothAddress != 0)
+        {
+            _knownBluetoothAddress = device.BluetoothAddress;
+        }
+
+        _knownControlAddress = device.ControlAddress ?? _knownControlAddress;
+        _knownOtherAddress = device.OtherAddress ?? _knownOtherAddress;
+    }
+
     private async Task DisconnectCoreAsync(bool updateStatus)
     {
         _promptVolumeDebounce?.Cancel();
+        _noiseControlCancellation?.Cancel();
+        _pendingNoiseControl = null;
         if (_deviceClient is not null)
         {
             _deviceClient.StateChanged -= DeviceClient_StateChanged;
@@ -701,7 +994,11 @@ public partial class MainPageViewModel : ObservableObject
         _isLoading = true;
         try
         {
+            _knownBluetoothAddress = profile.KnownBluetoothAddress;
+            _knownControlAddress = profile.KnownControlAddress;
+            _knownOtherAddress = profile.KnownOtherAddress;
             SelectedNoiseMode = profile.SelectedNoiseMode;
+            SelectedNoiseCancellationMode = profile.SelectedNoiseCancellationMode;
             SelectedEqualizerPreset = profile.SelectedEqualizerPreset;
             WearDetection = profile.WearDetection;
             LdacEnabled = profile.LdacEnabled;
@@ -745,8 +1042,12 @@ public partial class MainPageViewModel : ObservableObject
 
     private DeviceProfile CreateProfile() => new()
     {
-        ProfileVersion = 2,
+        ProfileVersion = 3,
+        KnownBluetoothAddress = _knownBluetoothAddress,
+        KnownControlAddress = _knownControlAddress,
+        KnownOtherAddress = _knownOtherAddress,
         SelectedNoiseMode = SelectedNoiseMode,
+        SelectedNoiseCancellationMode = SelectedNoiseCancellationMode,
         SelectedEqualizerPreset = SelectedEqualizerPreset,
         WearDetection = WearDetection,
         LdacEnabled = LdacEnabled,
@@ -769,10 +1070,20 @@ public partial class MainPageViewModel : ObservableObject
 
     private void UpdateBatteryDisplays()
     {
+        if (_isAggregateBatteryReading)
+        {
+            LeftBatteryDisplay = $"{LeftBattery:F0}%*";
+            RightBatteryDisplay = $"{RightBattery:F0}%*";
+            CaseBatteryDisplay = "—";
+            return;
+        }
+
         LeftBatteryDisplay = IsDeviceConnected || LeftBattery > 0 ? $"{LeftBattery:F0}%" : "—";
         RightBatteryDisplay = IsDeviceConnected || RightBattery > 0 ? $"{RightBattery:F0}%" : "—";
         CaseBatteryDisplay = IsDeviceConnected || CaseBattery > 0 ? $"{CaseBattery:F0}%" : "—";
     }
+
+    private bool HasBatteryReading => LeftBattery > 0 || RightBattery > 0 || CaseBattery > 0;
 
     private static Dictionary<byte, byte> BuildKeyFunctionMap(
         DeviceProfile profile,
@@ -794,6 +1105,35 @@ public partial class MainPageViewModel : ObservableObject
         "Normal" => QcyNoiseMode.Normal,
         _ => QcyNoiseMode.NoiseCancellation,
     };
+
+    private static QcyNoiseControlState ToNoiseControl(string mode, string cancellationMode) =>
+        QcyNoiseControlState.Create(
+            ToNoiseMode(mode),
+            NoiseCancellationModeIds.GetValueOrDefault(
+                cancellationMode,
+                QcyNoiseCancellationMode.Adaptive));
+
+    private bool TryGetSelectedNoiseControl(out QcyNoiseControlState state)
+    {
+        if (SelectedNoiseMode is null || !NoiseModes.Contains(SelectedNoiseMode, StringComparer.Ordinal) ||
+            SelectedNoiseCancellationMode is null ||
+            !NoiseCancellationModeIds.ContainsKey(SelectedNoiseCancellationMode))
+        {
+            state = null!;
+            return false;
+        }
+
+        state = ToNoiseControl(SelectedNoiseMode, SelectedNoiseCancellationMode);
+        return true;
+    }
+
+    private static string FromNoiseCancellationMode(QcyNoiseCancellationMode value) =>
+        NoiseCancellationModeIds.First(pair => pair.Value == value).Key;
+
+    private static string NoiseControlDisplayName(QcyNoiseControlState state) =>
+        state.Mode == QcyNoiseMode.NoiseCancellation && state.CancellationMode.HasValue
+            ? FromNoiseCancellationMode(state.CancellationMode.Value)
+            : FromNoiseMode(state.Mode);
 
     private static string FromNoiseMode(QcyNoiseMode value) => value switch
     {

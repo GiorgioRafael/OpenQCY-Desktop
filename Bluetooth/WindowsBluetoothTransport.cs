@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using OpenQCY_Desktop.Protocol;
+using Windows.Devices.Enumeration;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.Advertisement;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
@@ -9,9 +10,97 @@ namespace OpenQCY_Desktop.Bluetooth;
 
 public sealed class WindowsBluetoothTransport : IBluetoothTransport
 {
-    public Task<IReadOnlyList<BluetoothDeviceInfo>> FindPairedQcyDevicesAsync(
-        CancellationToken cancellationToken = default) =>
-        ScanForQcyDevicesAsync(TimeSpan.FromSeconds(6), cancellationToken);
+    private const string BatteryLifeProperty = "System.Devices.BatteryLife";
+    private const string IsConnectedProperty = "System.Devices.Aep.IsConnected";
+
+    public async Task<BluetoothBatteryInfo?> FindWindowsBatteryAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var selector = BluetoothDevice.GetDeviceSelectorFromPairingState(true);
+        var properties = new[] { BatteryLifeProperty, IsConnectedProperty };
+        var pairedDevices = await DeviceInformation.FindAllAsync(selector, properties);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return pairedDevices
+            .Where(device => LooksLikeN70(device.Name))
+            .Select(device => new
+            {
+                device.Name,
+                Battery = ReadByteProperty(device, BatteryLifeProperty),
+                IsConnected = ReadBooleanProperty(device, IsConnectedProperty),
+            })
+            .Where(device => device.Battery is <= 100)
+            .OrderByDescending(device => device.IsConnected)
+            .Select(device => new BluetoothBatteryInfo(
+                device.Name,
+                device.Battery!.Value,
+                device.IsConnected))
+            .FirstOrDefault();
+    }
+
+    public async Task<IReadOnlyList<BluetoothDeviceInfo>> FindPairedQcyDevicesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var devices = new List<BluetoothDeviceInfo>();
+        var serviceSelector = GattDeviceService.GetDeviceSelectorFromUuid(QcyUuids.MainService);
+        var knownServices = await DeviceInformation.FindAllAsync(serviceSelector);
+        foreach (var knownService in knownServices)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            GattDeviceService? service = null;
+            try
+            {
+                service = await GattDeviceService.FromIdAsync(knownService.Id);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (service is null)
+                {
+                    continue;
+                }
+
+                var device = await CreateKnownDeviceAsync(
+                    service.Session.DeviceId.Id,
+                    knownService.Name,
+                    cancellationToken);
+                if (device is not null)
+                {
+                    devices.Add(device);
+                }
+            }
+            catch (Exception) when (!cancellationToken.IsCancellationRequested)
+            {
+            }
+            finally
+            {
+                service?.Dispose();
+            }
+        }
+
+        var pairedSelector = BluetoothLEDevice.GetDeviceSelectorFromPairingState(true);
+        var pairedDevices = await DeviceInformation.FindAllAsync(pairedSelector);
+        foreach (var pairedDevice in pairedDevices.Where(device => LooksLikeN70(device.Name)))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                var device = await CreateKnownDeviceAsync(
+                    pairedDevice.Id,
+                    pairedDevice.Name,
+                    cancellationToken);
+                if (device is not null)
+                {
+                    devices.Add(device);
+                }
+            }
+            catch (Exception) when (!cancellationToken.IsCancellationRequested)
+            {
+                // A cached Windows entry may be stale. Other candidates can still be valid.
+            }
+        }
+
+        return devices
+            .DistinctBy(device => device.BluetoothAddress)
+            .ToArray();
+    }
 
     public async Task<IReadOnlyList<BluetoothDeviceInfo>> ScanForQcyDevicesAsync(
         TimeSpan duration,
@@ -172,4 +261,62 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
         reader.ReadBytes(value);
         return value;
     }
+
+    private static bool LooksLikeN70(string? name) =>
+        !string.IsNullOrWhiteSpace(name) &&
+        name.Contains("N70", StringComparison.OrdinalIgnoreCase) &&
+        (name.Contains("QCY", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("MeloBuds", StringComparison.OrdinalIgnoreCase));
+
+    private static async Task<BluetoothDeviceInfo?> CreateKnownDeviceAsync(
+        string deviceId,
+        string? fallbackName,
+        CancellationToken cancellationToken)
+    {
+        using var bluetoothDevice = await BluetoothLEDevice.FromIdAsync(deviceId);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (bluetoothDevice is null)
+        {
+            return null;
+        }
+
+        var name = string.IsNullOrWhiteSpace(bluetoothDevice.Name)
+            ? fallbackName ?? "QCY MeloBuds N70"
+            : bluetoothDevice.Name;
+        return new BluetoothDeviceInfo(
+            deviceId,
+            name,
+            bluetoothDevice.BluetoothAddress,
+            null,
+            null,
+            QcyUuids.N70BlackVendorId,
+            short.MinValue,
+            0,
+            0,
+            0,
+            false,
+            false,
+            false,
+            DateTimeOffset.UtcNow);
+    }
+
+    private static byte? ReadByteProperty(DeviceInformation device, string propertyName)
+    {
+        if (!device.Properties.TryGetValue(propertyName, out var value) || value is null)
+        {
+            return null;
+        }
+
+        return value switch
+        {
+            byte byteValue => byteValue,
+            ushort ushortValue when ushortValue <= byte.MaxValue => (byte)ushortValue,
+            uint uintValue when uintValue <= byte.MaxValue => (byte)uintValue,
+            int intValue when intValue is >= byte.MinValue and <= byte.MaxValue => (byte)intValue,
+            _ => null,
+        };
+    }
+
+    private static bool ReadBooleanProperty(DeviceInformation device, string propertyName) =>
+        device.Properties.TryGetValue(propertyName, out var value) && value is true;
 }
