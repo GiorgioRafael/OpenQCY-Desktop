@@ -4,6 +4,12 @@
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.22000.0</TargetPlatformMinVersion>
     <RootNamespace>OpenQCY_Desktop</RootNamespace>
+    <Version>0.1.0</Version>
+    <Product>OpenQCY Desktop</Product>
+    <Company>OpenQCY Community</Company>
+    <Authors>GiorgioRafael and OpenQCY contributors</Authors>
+    <Description>Open-source Windows controller for QCY earbuds.</Description>
+    <RepositoryUrl>https://github.com/GiorgioRafael/OpenQCY-Desktop</RepositoryUrl>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x64;ARM64</Platforms>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant())</RuntimeIdentifier>
