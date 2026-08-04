@@ -194,6 +194,18 @@
                                         <ProgressBar Height="4" Value="{x:Bind ViewModel.CaseBattery, Mode=OneWay}" />
                                     </StackPanel>
                                 </Grid>
+                                <Grid ColumnSpacing="7">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <FontIcon VerticalAlignment="Top" Glyph="&#xE895;" FontSize="12" Foreground="{StaticResource OpenQCYAccentBrush}" />
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Style="{StaticResource CaptionStyle}"
+                                        Text="{x:Bind ViewModel.BatteryStatus, Mode=OneWay}"
+                                        TextWrapping="Wrap" />
+                                </Grid>
                             </StackPanel>
 
                             <Border Grid.Column="1" Padding="20" Background="#10000000" CornerRadius="18">
@@ -205,6 +217,28 @@
                                     <RadioButtons
                                         ItemsSource="{x:Bind ViewModel.NoiseModes}"
                                         SelectedItem="{x:Bind ViewModel.SelectedNoiseMode, Mode=TwoWay}" />
+                                    <Border
+                                        x:Name="NoiseCancellationDetails"
+                                        x:Load="{x:Bind ViewModel.IsNoiseCancellationSelected, Mode=OneWay}"
+                                        Padding="13,11"
+                                        Background="#0CFFFFFF"
+                                        BorderBrush="#16FFFFFF"
+                                        BorderThickness="1"
+                                        CornerRadius="14">
+                                        <StackPanel Spacing="8">
+                                            <StackPanel>
+                                                <TextBlock FontSize="12" FontWeight="SemiBold" Text="Modo de cancelamento" />
+                                                <TextBlock
+                                                    Margin="0,2,0,0"
+                                                    Style="{StaticResource CaptionStyle}"
+                                                    Text="Escolha o perfil ideal para o ambiente." />
+                                            </StackPanel>
+                                            <RadioButtons
+                                                MaxColumns="2"
+                                                ItemsSource="{x:Bind ViewModel.NoiseCancellationModes}"
+                                                SelectedItem="{x:Bind ViewModel.SelectedNoiseCancellationMode, Mode=TwoWay}" />
+                                        </StackPanel>
+                                    </Border>
                                     <StackPanel Orientation="Horizontal" Spacing="10">
                                         <FontIcon Glyph="&#xE995;" FontSize="14" Foreground="{StaticResource OpenQCYBlueBrush}" />
                                         <TextBlock Style="{StaticResource CaptionStyle}" Text="Toque para alternar. A escolha permanece salva entre reinicializações." />
