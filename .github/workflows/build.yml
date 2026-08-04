@@ -2,7 +2,7 @@ name: build
 
 on:
   push:
-    branches: [main, "codex/**"]
+    branches: [main, "codex/**", "agent/**"]
   pull_request:
     branches: [main]
 
@@ -36,10 +36,24 @@ jobs:
         run: dotnet build Diagnostics/OpenQCY.Probe/OpenQCY.Probe.csproj -c Release
 
       - name: Publish portable build
-        run: dotnet publish OpenQCY.Desktop.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -p:WindowsAppSDKSelfContained=true --no-restore -o artifacts/OpenQCY-Desktop-win-x64
+        run: dotnet publish OpenQCY.Desktop.csproj -c Release -p:Platform=x64 -r win-x64 --self-contained true -p:WindowsAppSDKSelfContained=true --no-restore -o artifacts/publish
+
+      - name: Install pinned Inno Setup
+        shell: pwsh
+        run: ./scripts/install-inno.ps1
+
+      - name: Build Windows installer
+        shell: pwsh
+        run: ./scripts/build-installer.ps1 -Version 0.1.0 -SkipPublish
 
       - name: Upload portable build
         uses: actions/upload-artifact@v7
         with:
           name: OpenQCY-Desktop-win-x64
-          path: artifacts/OpenQCY-Desktop-win-x64
+          path: artifacts/publish
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: OpenQCY-Desktop-Setup
+          path: artifacts/installer/OpenQCY-Desktop-Setup.exe
