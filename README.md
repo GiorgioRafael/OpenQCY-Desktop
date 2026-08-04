@@ -1,5 +1,20 @@
 # OpenQCY Desktop
 
+[![build](https://github.com/GiorgioRafael/OpenQCY-Desktop/actions/workflows/build.yml/badge.svg)](https://github.com/GiorgioRafael/OpenQCY-Desktop/actions/workflows/build.yml)
+[![release](https://img.shields.io/github/v/release/GiorgioRafael/OpenQCY-Desktop?display_name=tag&sort=semver)](https://github.com/GiorgioRafael/OpenQCY-Desktop/releases/latest)
+[![license](https://img.shields.io/github/license/GiorgioRafael/OpenQCY-Desktop)](LICENSE)
+
+## Download
+
+[![Download for Windows](https://img.shields.io/badge/Download-Windows_11_x64-25c98b?style=for-the-badge&logo=windows11&logoColor=white)](https://github.com/GiorgioRafael/OpenQCY-Desktop/releases/latest/download/OpenQCY-Desktop-Setup.exe)
+
+Download and run `OpenQCY-Desktop-Setup.exe`. The installer is self-contained, installs only for the current user, and does not require the .NET runtime or administrator access.
+
+[Portable ZIP](https://github.com/GiorgioRafael/OpenQCY-Desktop/releases/latest/download/OpenQCY-Desktop-win-x64.zip) · [All releases](https://github.com/GiorgioRafael/OpenQCY-Desktop/releases)
+
+> [!NOTE]
+> Community builds are currently unsigned. Windows may show an "Unknown publisher" or Microsoft Defender SmartScreen warning. Verify the download with the release's `SHA256SUMS.txt` file.
+
 OpenQCY Desktop is an open-source Windows controller for QCY earbuds. The first supported target is the **QCY MeloBuds N70 (HT18)**.
 
 > [!IMPORTANT]
@@ -43,7 +58,7 @@ Firmware flashing, account features, telemetry, ads, and store pages are explici
 - WinUI 3 / Windows App SDK
 - Windows Bluetooth GATT APIs
 - MVVM with CommunityToolkit.Mvvm
-- Portable, self-contained Windows 11 distribution
+- Self-contained Windows 11 installer and portable distribution
 
 The UI design language is called **OpenQCY Glass**: a Windows-native interpretation of the clarity, depth, large radii, and contextual expansion found in modern Apple interfaces. It uses native WinUI controls and original project assets; it does not ship Apple fonts, icons, or artwork.
 
@@ -53,15 +68,17 @@ Prerequisites:
 
 - Windows 11
 - .NET 10 SDK
+- Inno Setup 6.7 or later (only when building the installer locally)
 
 ```powershell
 dotnet restore -r win-x64
 dotnet build -c Debug -p:Platform=x64 -p:RuntimeIdentifier=win-x64
 dotnet run -c Debug -p:Platform=x64 -p:RuntimeIdentifier=win-x64
 dotnet test tests/OpenQCY.Desktop.Tests.csproj -c Release
+pwsh ./scripts/build-installer.ps1 -Version 0.1.0
 ```
 
-The GitHub Actions pipeline builds and uploads a self-contained `win-x64` artifact. See [Architecture](docs/architecture.md), [Protocol research](docs/protocol-research.md), and the [performance baseline](docs/performance.md).
+The GitHub Actions pipeline builds both distributions. Pushing a semantic version tag such as `v0.1.0` publishes the installer, portable ZIP, and checksums to GitHub Releases. See the [release guide](docs/releasing.md), [Architecture](docs/architecture.md), [Protocol research](docs/protocol-research.md), and the [performance baseline](docs/performance.md).
 
 ## Safety
 

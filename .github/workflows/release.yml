@@ -1,0 +1,103 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v[0-9]*.[0-9]*.[0-9]*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semantic version without the v prefix"
+        required: true
+        default: "0.1.0"
+
+permissions:
+  contents: write
+
+jobs:
+  windows-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: |
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $version = "${{ github.ref_name }}".TrimStart('v')
+          }
+          else {
+            $version = "${{ inputs.version }}"
+          }
+
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Version must use MAJOR.MINOR.PATCH: $version"
+          }
+
+          "value=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore protocol tests
+        run: dotnet restore tests/OpenQCY.Desktop.Tests.csproj
+
+      - name: Test protocol
+        run: dotnet test tests/OpenQCY.Desktop.Tests.csproj -c Release --no-restore
+
+      - name: Install pinned Inno Setup
+        shell: pwsh
+        run: ./scripts/install-inno.ps1
+
+      - name: Build application and installer
+        shell: pwsh
+        run: ./scripts/build-installer.ps1 -Version "${{ steps.version.outputs.value }}"
+
+      - name: Package release files
+        shell: pwsh
+        run: |
+          $zipPath = Join-Path $PWD 'artifacts\OpenQCY-Desktop-win-x64.zip'
+          Compress-Archive -Path 'artifacts\publish\*' -DestinationPath $zipPath -CompressionLevel Optimal
+
+          $releaseFiles = @(
+            'artifacts\installer\OpenQCY-Desktop-Setup.exe',
+            'artifacts\OpenQCY-Desktop-win-x64.zip'
+          )
+          $checksums = foreach ($file in $releaseFiles) {
+            $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $([IO.Path]::GetFileName($file))"
+          }
+          $checksumPath = Join-Path $PWD 'artifacts\SHA256SUMS.txt'
+          [IO.File]::WriteAllLines($checksumPath, $checksums, [Text.UTF8Encoding]::new($false))
+
+      - name: Upload release bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: OpenQCY-Desktop-${{ steps.version.outputs.value }}
+          path: |
+            artifacts/installer/OpenQCY-Desktop-Setup.exe
+            artifacts/OpenQCY-Desktop-win-x64.zip
+            artifacts/SHA256SUMS.txt
+
+      - name: Publish GitHub release
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $arguments = @(
+            'release',
+            'create',
+            "${{ github.ref_name }}",
+            'artifacts/installer/OpenQCY-Desktop-Setup.exe',
+            'artifacts/OpenQCY-Desktop-win-x64.zip',
+            'artifacts/SHA256SUMS.txt',
+            '--verify-tag',
+            '--title',
+            "OpenQCY Desktop ${{ github.ref_name }}",
+            '--generate-notes'
+          )
+          & gh @arguments
