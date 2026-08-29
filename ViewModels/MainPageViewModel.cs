@@ -47,6 +47,7 @@ public partial class MainPageViewModel : ObservableObject
         };
 
     private readonly ProfileStore _profileStore = new();
+    private readonly WindowsStartupService _windowsStartupService = new();
     private readonly IBluetoothTransport _bluetoothTransport = new WindowsBluetoothTransport();
     private IBluetoothDeviceConnection? _connection;
     private QcyDeviceClient? _deviceClient;
@@ -63,10 +64,12 @@ public partial class MainPageViewModel : ObservableObject
     private bool _hasStarted;
     private bool _isLoading;
     private bool _isSynchronizingDevice;
+    private bool _isUpdatingStartupSetting;
 
     public MainPageViewModel()
     {
         LoadProfile();
+        LoadStartupSetting();
     }
 
     public IReadOnlyList<string> NoiseModes { get; } = ["Cancelamento", "Transparência", "Normal"];
@@ -106,6 +109,12 @@ public partial class MainPageViewModel : ObservableObject
 
     [ObservableProperty]
     public partial bool AutoApplyEnabled { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool RunAtStartupEnabled { get; set; }
+
+    [ObservableProperty]
+    public partial string StartupStatus { get; set; } = "Abre em segundo plano, somente na bandeja.";
 
     [ObservableProperty]
     public partial double PromptVolume { get; set; } = 64;
@@ -492,6 +501,36 @@ public partial class MainPageViewModel : ObservableObject
         "Modo sono confirmado pelo N70");
 
     partial void OnAutoApplyEnabledChanged(bool value) => Save();
+
+    partial void OnRunAtStartupEnabledChanged(bool value)
+    {
+        if (_isUpdatingStartupSetting)
+        {
+            return;
+        }
+
+        try
+        {
+            _windowsStartupService.SetEnabled(value);
+            StartupStatus = value
+                ? "Será iniciado em segundo plano, somente na bandeja."
+                : "Não será iniciado automaticamente com o Windows.";
+        }
+        catch (Exception exception) when (exception is UnauthorizedAccessException or IOException or InvalidOperationException)
+        {
+            _isUpdatingStartupSetting = true;
+            try
+            {
+                RunAtStartupEnabled = !value;
+            }
+            finally
+            {
+                _isUpdatingStartupSetting = false;
+            }
+
+            StartupStatus = "Não foi possível alterar a inicialização automática.";
+        }
+    }
 
     partial void OnPromptVolumeChanged(double value)
     {
@@ -1027,6 +1066,27 @@ public partial class MainPageViewModel : ObservableObject
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private void LoadStartupSetting()
+    {
+        _isUpdatingStartupSetting = true;
+        try
+        {
+            RunAtStartupEnabled = _windowsStartupService.IsEnabled;
+            StartupStatus = RunAtStartupEnabled
+                ? "Será iniciado em segundo plano, somente na bandeja."
+                : "Abre em segundo plano, somente na bandeja.";
+        }
+        catch (Exception exception) when (exception is UnauthorizedAccessException or IOException or InvalidOperationException)
+        {
+            RunAtStartupEnabled = false;
+            StartupStatus = "Não foi possível consultar a inicialização automática.";
+        }
+        finally
+        {
+            _isUpdatingStartupSetting = false;
         }
     }
 

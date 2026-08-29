@@ -68,3 +68,10 @@ Name: "{autodesktop}\OpenQCY Desktop"; Filename: "{app}\{#AppExeName}"; Tasks: d
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,OpenQCY Desktop}"; Flags: nowait postinstall skipifsilent
+
+[Code]
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usUninstall then
+    RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'OpenQCY Desktop');
+end;

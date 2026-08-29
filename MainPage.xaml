@@ -461,7 +461,7 @@
                             <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
                             <Grid><StackPanel><TextBlock Style="{StaticResource CardTitleStyle}" Text="Reaplicar ao conectar" /><TextBlock Style="{StaticResource CaptionStyle}" Text="Mantém sua configuração estável mesmo depois de usar o celular." /></StackPanel><ToggleSwitch HorizontalAlignment="Right" IsOn="{x:Bind ViewModel.AutoApplyEnabled, Mode=TwoWay}" /></Grid>
                             <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
-                            <Grid><StackPanel><TextBlock Style="{StaticResource CardTitleStyle}" Text="Executar com o Windows" /><TextBlock Style="{StaticResource CaptionStyle}" Text="Disponível quando o instalador estiver pronto." /></StackPanel><ToggleSwitch HorizontalAlignment="Right" IsEnabled="False" /></Grid>
+                            <Grid><StackPanel><TextBlock Style="{StaticResource CardTitleStyle}" Text="Executar com o Windows" /><TextBlock Style="{StaticResource CaptionStyle}" Text="{x:Bind ViewModel.StartupStatus, Mode=OneWay}" /></StackPanel><ToggleSwitch HorizontalAlignment="Right" IsOn="{x:Bind ViewModel.RunAtStartupEnabled, Mode=TwoWay}" /></Grid>
                         </StackPanel>
                     </Border>
                     <Border Style="{StaticResource CompactGlassCardStyle}">

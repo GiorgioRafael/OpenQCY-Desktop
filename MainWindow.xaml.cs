@@ -41,8 +41,15 @@ public sealed partial class MainWindow : Window
 
     public void ShowFromTray()
     {
+        AppWindow.IsShownInSwitchers = true;
         WindowExtensions.Show(this, disableEfficiencyMode: true);
         Activate();
+    }
+
+    public void StartHidden()
+    {
+        AppWindow.IsShownInSwitchers = false;
+        WindowExtensions.Hide(this, enableEfficiencyMode: true);
     }
 
     public void DisposeTrayIcon()

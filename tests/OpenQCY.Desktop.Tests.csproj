@@ -17,4 +17,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Protocol\OpenQCY.Protocol.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Services\WindowsStartupService.cs" Link="Services\WindowsStartupService.cs" />
+  </ItemGroup>
 </Project>

@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml;
+using OpenQCY_Desktop.Services;
 using OpenQCY_Desktop.ViewModels;
 
 namespace OpenQCY_Desktop;
@@ -19,8 +20,17 @@ public partial class App : Application
 
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
+        var isStartupLaunch = WindowsStartupService.IsStartupLaunch(Environment.GetCommandLineArgs());
         Window = new MainWindow();
         DispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
+
+        if (isStartupLaunch && Window is MainWindow mainWindow)
+        {
+            mainWindow.StartHidden();
+            _ = ViewModel.StartAsync();
+            return;
+        }
+
         Window.Activate();
     }
 

@@ -28,6 +28,7 @@ O OpenQCY Desktop já possui uma implementação real para o QCY MeloBuds N70. E
 - conexão ao serviço `A001` e respostas por notificações
 - leitura real do firmware e das baterias esquerda, direita e do estojo
 - reconexão automática pelo endereço de controle salvo localmente, pelo serviço GATT em cache ou pelo próximo anúncio do N70
+- inicialização opcional com o Windows, em segundo plano somente pela área de notificação
 - leitura de ANC, modo jogo, modo sono, LDAC, multiponto, vento, volume dos avisos e desligamento automático
 - detecção de uso ligada e desligada pela interface do PC, com confirmação lida do fone
 - perfil local reaplicado quando o N70 reconecta
