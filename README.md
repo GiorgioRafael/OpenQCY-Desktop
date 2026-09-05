@@ -31,6 +31,7 @@ OpenQCY Desktop now has a hardware-backed QCY MeloBuds N70 implementation. On Au
 - real firmware and left/right/case battery readings
 - automatic reconnect from the locally remembered control address, cached Windows GATT service, or the next N70 advertisement
 - optional startup with Windows, running silently from the notification area until opened
+- English desktop and notification-area interfaces
 - state reads for ANC, game mode, sleep mode, LDAC, multipoint, wind detection, prompt volume, and auto power-off
 - wear detection enabled and disabled from the desktop UI, followed by device readback
 - a local profile that is reapplied when the N70 reconnects
@@ -76,10 +77,10 @@ dotnet restore -r win-x64
 dotnet build -c Debug -p:Platform=x64 -p:RuntimeIdentifier=win-x64
 dotnet run -c Debug -p:Platform=x64 -p:RuntimeIdentifier=win-x64
 dotnet test tests/OpenQCY.Desktop.Tests.csproj -c Release
-pwsh ./scripts/build-installer.ps1 -Version 0.1.0
+pwsh ./scripts/build-installer.ps1 -Version 0.2.0
 ```
 
-The GitHub Actions pipeline builds both distributions. Pushing a semantic version tag such as `v0.1.0` publishes the installer, portable ZIP, and checksums to GitHub Releases. See the [release guide](docs/releasing.md), [Architecture](docs/architecture.md), [Protocol research](docs/protocol-research.md), and the [performance baseline](docs/performance.md).
+The GitHub Actions pipeline builds both distributions. Pushing a semantic version tag such as `v0.2.0` publishes the installer, portable ZIP, and checksums to GitHub Releases. See the [release guide](docs/releasing.md), [Architecture](docs/architecture.md), [Protocol research](docs/protocol-research.md), and the [performance baseline](docs/performance.md).
 
 ## Safety
 

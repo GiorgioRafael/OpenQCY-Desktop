@@ -213,7 +213,7 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
                 cancellationToken.ThrowIfCancellationRequested();
                 if (bluetoothDevice is null)
                 {
-                    diagnostics.Add($"{QcyAdvertisement.FormatAddress(address)}: dispositivo BLE indisponível");
+                    diagnostics.Add($"{QcyAdvertisement.FormatAddress(address)}: BLE device unavailable");
                     continue;
                 }
 
@@ -224,7 +224,7 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
 
                 if (services.Status != GattCommunicationStatus.Success || services.Services.Count == 0)
                 {
-                    diagnostics.Add($"{QcyAdvertisement.FormatAddress(address)}: serviço A001 não encontrado ({services.Status})");
+                    diagnostics.Add($"{QcyAdvertisement.FormatAddress(address)}: A001 service not found ({services.Status})");
                     bluetoothDevice.Dispose();
                     bluetoothDevice = null;
                     continue;
@@ -250,7 +250,7 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
 
         throw new InvalidOperationException(
             diagnostics.Count == 0
-                ? "Nenhum endereço de controle QCY foi anunciado."
+                ? "No QCY control address was advertised."
                 : string.Join(Environment.NewLine, diagnostics));
     }
 

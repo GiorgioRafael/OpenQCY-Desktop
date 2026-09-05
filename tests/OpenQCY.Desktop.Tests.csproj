@@ -19,6 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Services\DeviceProfile.cs" Link="Services\DeviceProfile.cs" />
+    <Compile Include="..\Services\ProfileStore.cs" Link="Services\ProfileStore.cs" />
     <Compile Include="..\Services\WindowsStartupService.cs" Link="Services\WindowsStartupService.cs" />
   </ItemGroup>
 </Project>

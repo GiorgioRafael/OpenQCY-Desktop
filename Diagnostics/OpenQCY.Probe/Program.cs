@@ -7,9 +7,9 @@ Console.OutputEncoding = Encoding.UTF8;
 var willDisableWearDetection = args.Contains("--disable-wear-detection", StringComparer.OrdinalIgnoreCase);
 var windowsBatteryOnly = args.Contains("--windows-battery", StringComparer.OrdinalIgnoreCase);
 Console.WriteLine(willDisableWearDetection
-    ? "OpenQCY Probe · diagnóstico e alteração solicitada da detecção de uso"
-    : "OpenQCY Probe · diagnóstico local somente leitura");
-Console.WriteLine("Abra o estojo e mantenha os dois fones próximos ao computador.");
+    ? "OpenQCY Probe · diagnostics and requested wear-detection change"
+    : "OpenQCY Probe · read-only local diagnostics");
+Console.WriteLine("Open the case and keep both earbuds near the computer.");
 
 var transport = new WindowsBluetoothTransport();
 if (windowsBatteryOnly)
@@ -17,32 +17,32 @@ if (windowsBatteryOnly)
     var windowsBattery = await transport.FindWindowsBatteryAsync();
     if (windowsBattery is null)
     {
-        Console.Error.WriteLine("O Windows não forneceu uma leitura de bateria para o N70.");
+        Console.Error.WriteLine("Windows did not provide a battery reading for the N70.");
         return 3;
     }
 
     Console.WriteLine(
-        $"Cache do Windows: {windowsBattery.DeviceName} · {windowsBattery.Percentage}% · " +
-        $"conectado: {YesNo(windowsBattery.IsConnected)}");
+        $"Windows cache: {windowsBattery.DeviceName} · {windowsBattery.Percentage}% · " +
+        $"connected: {YesNo(windowsBattery.IsConnected)}");
     return 0;
 }
 
 var devices = await transport.ScanForQcyDevicesAsync(TimeSpan.FromSeconds(12));
 if (devices.Count == 0)
 {
-    Console.Error.WriteLine("Nenhum anúncio BLE QCY (0x521C) foi encontrado.");
+    Console.Error.WriteLine("No QCY BLE advertisement (0x521C) was found.");
     return 2;
 }
 
 foreach (var device in devices)
 {
     Console.WriteLine(
-        $"Encontrado: {device.Name} · vendor {device.VendorId} · RSSI {device.SignalStrength} dBm · " +
-        $"L {device.LeftBattery}% / R {device.RightBattery}% / estojo {device.CaseBattery}%");
+        $"Found: {device.Name} · vendor {device.VendorId} · RSSI {device.SignalStrength} dBm · " +
+        $"L {device.LeftBattery}% / R {device.RightBattery}% / case {device.CaseBattery}%");
 }
 
 var target = devices.FirstOrDefault(device => QcyUuids.IsN70(device.VendorId)) ?? devices[0];
-Console.WriteLine($"Conectando ao canal de controle de {target.Name}…");
+Console.WriteLine($"Connecting to the {target.Name} control channel…");
 
 await using var connection = await transport.ConnectAsync(target);
 await using var client = await QcyDeviceClient.CreateAsync(connection);
@@ -50,36 +50,36 @@ client.ProtocolTrace += (_, line) => Console.WriteLine($"  {line}");
 await client.RefreshAsync();
 
 var state = client.State;
-Console.WriteLine($"Conectado: {state.DeviceName}");
-Console.WriteLine($"Firmware: {state.FirmwareVersion ?? "não informado"}");
-Console.WriteLine($"Bateria: L {Percent(state.Battery.Left)} · R {Percent(state.Battery.Right)} · estojo {Percent(state.Battery.Case)}");
-Console.WriteLine($"Detecção de uso: {BooleanText(state.WearDetectionEnabled)} · protocolo {state.WearDetectionProtocol}");
-Console.WriteLine($"ANC: {state.NoiseMode?.ToString() ?? "não informado"}");
-Console.WriteLine($"Modo jogo: {BooleanText(state.GameModeEnabled)}");
-Console.WriteLine($"LDAC: {BooleanText(state.LdacEnabled)} · multiponto: {BooleanText(state.MultipointEnabled)}");
-Console.WriteLine($"Equalizador: preset {state.EqualizerPreset?.ToString() ?? "não informado"} · {state.EqualizerGains.Count} bandas");
-Console.WriteLine($"Características QCY encontradas: {connection.Characteristics.Count}");
+Console.WriteLine($"Connected: {state.DeviceName}");
+Console.WriteLine($"Firmware: {state.FirmwareVersion ?? "not reported"}");
+Console.WriteLine($"Battery: L {Percent(state.Battery.Left)} · R {Percent(state.Battery.Right)} · case {Percent(state.Battery.Case)}");
+Console.WriteLine($"Wear detection: {BooleanText(state.WearDetectionEnabled)} · protocol {state.WearDetectionProtocol}");
+Console.WriteLine($"ANC: {state.NoiseMode?.ToString() ?? "not reported"}");
+Console.WriteLine($"Game mode: {BooleanText(state.GameModeEnabled)}");
+Console.WriteLine($"LDAC: {BooleanText(state.LdacEnabled)} · multipoint: {BooleanText(state.MultipointEnabled)}");
+Console.WriteLine($"Equalizer: preset {state.EqualizerPreset?.ToString() ?? "not reported"} · {state.EqualizerGains.Count} bands");
+Console.WriteLine($"QCY characteristics found: {connection.Characteristics.Count}");
 foreach (var characteristic in connection.Characteristics.OrderBy(item => item.Uuid))
 {
     Console.WriteLine(
-        $"  {characteristic.Uuid:D} · leitura {YesNo(characteristic.CanRead)} · " +
-        $"escrita {YesNo(characteristic.CanWrite)} · notificação {YesNo(characteristic.CanNotify)}");
+        $"  {characteristic.Uuid:D} · read {YesNo(characteristic.CanRead)} · " +
+        $"write {YesNo(characteristic.CanWrite)} · notify {YesNo(characteristic.CanNotify)}");
 }
 
 if (willDisableWearDetection)
 {
-    Console.WriteLine("Desativando a detecção de uso e aguardando confirmação do N70…");
+    Console.WriteLine("Disabling wear detection and waiting for N70 confirmation…");
     await client.SetWearDetectionAsync(false);
-    Console.WriteLine($"Detecção de uso após confirmação: {BooleanText(client.State.WearDetectionEnabled)}");
+    Console.WriteLine($"Wear detection after confirmation: {BooleanText(client.State.WearDetectionEnabled)}");
 }
 
 return 0;
 
 static string Percent(byte? value) => value.HasValue ? $"{value}%" : "—";
-static string YesNo(bool value) => value ? "sim" : "não";
+static string YesNo(bool value) => value ? "yes" : "no";
 static string BooleanText(bool? value) => value switch
 {
-    true => "ligada",
-    false => "desligada",
-    null => "não informada",
+    true => "enabled",
+    false => "disabled",
+    null => "not reported",
 };

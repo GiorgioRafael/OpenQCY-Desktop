@@ -12,38 +12,38 @@ public partial class MainPageViewModel : ObservableObject
     private static readonly IReadOnlyDictionary<string, byte> EqualizerPresetIds =
         new Dictionary<string, byte>(StringComparer.Ordinal)
         {
-            ["Som espacial"] = 0,
-            ["Padrão"] = 1,
-            ["Palco suave"] = 2,
+            ["Spatial audio"] = 0,
+            ["Default"] = 1,
+            ["Soft stage"] = 2,
             ["Pop"] = 3,
-            ["Graves fortes"] = 4,
+            ["Bass boost"] = 4,
             ["Rock"] = 5,
-            ["Suave"] = 6,
-            ["Clássico"] = 7,
+            ["Soft"] = 6,
+            ["Classical"] = 7,
         };
 
     private static readonly IReadOnlyDictionary<string, byte> TouchActionIds =
         new Dictionary<string, byte>(StringComparer.Ordinal)
         {
-            ["Sem ação"] = 0,
-            ["Reproduzir / pausar"] = 1,
-            ["Faixa anterior"] = 2,
-            ["Próxima faixa"] = 3,
-            ["Assistente"] = 4,
-            ["Aumentar volume"] = 5,
-            ["Diminuir volume"] = 6,
-            ["Modo jogo"] = 7,
-            ["Modo de ruído"] = 8,
+            ["No action"] = 0,
+            ["Play / pause"] = 1,
+            ["Previous track"] = 2,
+            ["Next track"] = 3,
+            ["Voice assistant"] = 4,
+            ["Volume up"] = 5,
+            ["Volume down"] = 6,
+            ["Game mode"] = 7,
+            ["Noise control"] = 8,
         };
 
     private static readonly IReadOnlyDictionary<string, QcyNoiseCancellationMode> NoiseCancellationModeIds =
         new Dictionary<string, QcyNoiseCancellationMode>(StringComparer.Ordinal)
         {
-            ["Adaptativo"] = QcyNoiseCancellationMode.Adaptive,
-            ["Ambiente interno"] = QcyNoiseCancellationMode.Indoor,
-            ["Deslocamento"] = QcyNoiseCancellationMode.Commuting,
-            ["Ambiente ruidoso"] = QcyNoiseCancellationMode.Noisy,
-            ["Anti-vento"] = QcyNoiseCancellationMode.AntiWind,
+            ["Adaptive"] = QcyNoiseCancellationMode.Adaptive,
+            ["Indoor"] = QcyNoiseCancellationMode.Indoor,
+            ["Commuting"] = QcyNoiseCancellationMode.Commuting,
+            ["Noisy environment"] = QcyNoiseCancellationMode.Noisy,
+            ["Anti-wind"] = QcyNoiseCancellationMode.AntiWind,
         };
 
     private readonly ProfileStore _profileStore = new();
@@ -72,22 +72,22 @@ public partial class MainPageViewModel : ObservableObject
         LoadStartupSetting();
     }
 
-    public IReadOnlyList<string> NoiseModes { get; } = ["Cancelamento", "Transparência", "Normal"];
+    public IReadOnlyList<string> NoiseModes { get; } = ["Noise cancellation", "Transparency", "Normal"];
     public IReadOnlyList<string> NoiseCancellationModes { get; } = [.. NoiseCancellationModeIds.Keys];
-    public IReadOnlyList<string> EqualizerPresets { get; } = [.. EqualizerPresetIds.Keys, "Personalizado"];
+    public IReadOnlyList<string> EqualizerPresets { get; } = [.. EqualizerPresetIds.Keys, "Custom"];
     public IReadOnlyList<string> TouchActions { get; } = [.. TouchActionIds.Keys];
-    public IReadOnlyList<string> DisconnectTimeouts { get; } = ["Nunca", "5 minutos", "15 minutos", "30 minutos", "1 hora"];
+    public IReadOnlyList<string> DisconnectTimeouts { get; } = ["Never", "5 minutes", "15 minutes", "30 minutes", "1 hour"];
 
     [ObservableProperty]
-    public partial string SelectedNoiseMode { get; set; } = "Cancelamento";
+    public partial string SelectedNoiseMode { get; set; } = "Noise cancellation";
 
     [ObservableProperty]
-    public partial string SelectedNoiseCancellationMode { get; set; } = "Adaptativo";
+    public partial string SelectedNoiseCancellationMode { get; set; } = "Adaptive";
 
-    public bool IsNoiseCancellationSelected => SelectedNoiseMode == "Cancelamento";
+    public bool IsNoiseCancellationSelected => SelectedNoiseMode == "Noise cancellation";
 
     [ObservableProperty]
-    public partial string SelectedEqualizerPreset { get; set; } = "Padrão";
+    public partial string SelectedEqualizerPreset { get; set; } = "Default";
 
     [ObservableProperty]
     public partial bool WearDetection { get; set; }
@@ -114,7 +114,7 @@ public partial class MainPageViewModel : ObservableObject
     public partial bool RunAtStartupEnabled { get; set; }
 
     [ObservableProperty]
-    public partial string StartupStatus { get; set; } = "Abre em segundo plano, somente na bandeja.";
+    public partial string StartupStatus { get; set; } = "Opens in the background, in the notification area only.";
 
     [ObservableProperty]
     public partial double PromptVolume { get; set; } = 64;
@@ -152,31 +152,31 @@ public partial class MainPageViewModel : ObservableObject
     public partial double EqBand10 { get; set; }
 
     [ObservableProperty]
-    public partial string LeftDoubleTap { get; set; } = "Reproduzir / pausar";
+    public partial string LeftDoubleTap { get; set; } = "Play / pause";
 
     [ObservableProperty]
-    public partial string RightDoubleTap { get; set; } = "Próxima faixa";
+    public partial string RightDoubleTap { get; set; } = "Next track";
 
     [ObservableProperty]
-    public partial string LeftLongPress { get; set; } = "Modo de ruído";
+    public partial string LeftLongPress { get; set; } = "Noise control";
 
     [ObservableProperty]
-    public partial string RightLongPress { get; set; } = "Assistente";
+    public partial string RightLongPress { get; set; } = "Voice assistant";
 
     [ObservableProperty]
-    public partial string DisconnectTimeout { get; set; } = "Nunca";
+    public partial string DisconnectTimeout { get; set; } = "Never";
 
     [ObservableProperty]
-    public partial string SaveStatus { get; set; } = "Preferências locais carregadas";
+    public partial string SaveStatus { get; set; } = "Local preferences loaded";
 
     [ObservableProperty]
-    public partial string DiscoveryStatus { get; set; } = "Pronto para procurar o canal de controle QCY";
+    public partial string DiscoveryStatus { get; set; } = "Ready to find the QCY control channel";
 
     [ObservableProperty]
     public partial string DeviceName { get; set; } = "QCY MeloBuds N70";
 
     [ObservableProperty]
-    public partial string ConnectionStatus { get; set; } = "Controle desconectado";
+    public partial string ConnectionStatus { get; set; } = "Control disconnected";
 
     [ObservableProperty]
     public partial string FirmwareVersion { get; set; } = "—";
@@ -191,7 +191,7 @@ public partial class MainPageViewModel : ObservableObject
     public partial string CaseBatteryDisplay { get; set; } = "—";
 
     [ObservableProperty]
-    public partial string BatteryStatus { get; set; } = "Procurando uma leitura recente do N70";
+    public partial string BatteryStatus { get; set; } = "Looking for a recent N70 battery reading";
 
     [ObservableProperty]
     public partial double LeftBattery { get; set; }
@@ -218,7 +218,7 @@ public partial class MainPageViewModel : ObservableObject
     public partial bool EqualizerPresetsSupported { get; set; }
 
     [ObservableProperty]
-    public partial string EqualizerCapabilityStatus { get; set; } = "Disponibilidade verificada ao conectar";
+    public partial string EqualizerCapabilityStatus { get; set; } = "Availability checked on connection";
 
     [ObservableProperty]
     public partial bool KeyFunctionsSupported { get; set; }
@@ -263,12 +263,12 @@ public partial class MainPageViewModel : ObservableObject
                 _isAggregateBatteryReading = true;
                 UpdateBatteryDisplays();
                 BatteryStatus = windowsBattery.IsConnected
-                    ? "Estimativa geral fornecida pelo Windows; conectando para separar os lados"
-                    : "Última estimativa geral armazenada pelo Windows";
+                    ? "Overall estimate provided by Windows; connecting to read each side"
+                    : "Last overall estimate stored by Windows";
             }
 
-            DiscoveryStatus = "Procurando o N70 já conhecido pelo Windows…";
-            ConnectionStatus = "Procurando canal de controle salvo";
+            DiscoveryStatus = "Looking for the N70 already known to Windows…";
+            ConnectionStatus = "Looking for the saved control channel";
 
             var knownDevices = (await _bluetoothTransport.FindPairedQcyDevicesAsync())
                 .Where(device => QcyUuids.IsN70(device.VendorId))
@@ -282,8 +282,8 @@ public partial class MainPageViewModel : ObservableObject
             var target = await ConnectFirstAvailableAsync(knownDevices);
             if (target is null)
             {
-                DiscoveryStatus = "O N70 não estava no cache; procurando anúncios BLE…";
-                ConnectionStatus = "Procurando anúncio do canal de controle";
+                DiscoveryStatus = "The N70 was not cached; scanning for BLE advertisements…";
+                ConnectionStatus = "Looking for the control channel advertisement";
                 var advertisedDevices = await _bluetoothTransport.ScanForQcyDevicesAsync(TimeSpan.FromSeconds(8));
                 var advertisedN70 = advertisedDevices
                     .Where(device => QcyUuids.IsN70(device.VendorId))
@@ -292,7 +292,7 @@ public partial class MainPageViewModel : ObservableObject
                 if (target is null)
                 {
                     throw new InvalidOperationException(
-                        "O N70 não apareceu no cache do Windows nem anunciou o canal de controle. Abra o estojo ou retire um fone e tente novamente.");
+                        "The N70 was not found in the Windows cache and did not advertise its control channel. Open the case or remove an earbud and try again.");
                 }
             }
 
@@ -305,37 +305,36 @@ public partial class MainPageViewModel : ObservableObject
                 RightBattery = target.RightBattery;
                 CaseBattery = target.CaseBattery;
                 UpdateBatteryDisplays();
-                BatteryStatus = "Bateria detectada pelo anúncio do N70";
+                BatteryStatus = "Battery detected from the N70 advertisement";
             }
 
             ApplyDeviceState(_deviceClient!.State);
-            UpdateCapabilities();
 
             if (desiredProfile.AutoApplyEnabled)
             {
-                SaveStatus = "Reaplicando o perfil salvo no N70…";
+                SaveStatus = "Reapplying the saved profile to the N70…";
                 await ApplyProfileToDeviceAsync(desiredProfile);
             }
 
             ApplyDeviceState(_deviceClient.State);
-            DiscoveryStatus = "Canal de controle QCY conectado e validado";
-            BatteryStatus = "Atualiza automaticamente enquanto o controle estiver conectado";
+            DiscoveryStatus = "QCY control channel connected and validated";
+            BatteryStatus = "Updates automatically while the control channel is connected";
             Save();
             SaveStatus = desiredProfile.AutoApplyEnabled
-                ? "Perfil confirmado pelo N70"
-                : "Estado atual lido do N70";
+                ? "Profile confirmed by the N70"
+                : "Current N70 state loaded";
         }
         catch (Exception exception)
         {
             await DisconnectCoreAsync(updateStatus: false);
-            ConnectionStatus = "Controle desconectado";
+            ConnectionStatus = "Control disconnected";
             DiscoveryStatus = FriendlyError(exception);
-            SaveStatus = "As preferências continuam salvas neste PC";
+            SaveStatus = "Your preferences remain saved on this PC";
             BatteryStatus = windowsBattery is not null
-                ? "Estimativa geral do Windows; abra o estojo para ler cada lado e o estojo"
+                ? "Overall Windows estimate; open the case to read each earbud and the case"
                 : HasBatteryReading
-                ? "Exibindo a última leitura recebida do N70"
-                : "Sem leitura — abra o estojo ou retire um fone para anunciar a bateria";
+                ? "Showing the last reading received from the N70"
+                : "No reading — open the case or remove an earbud to advertise the battery";
         }
         finally
         {
@@ -355,13 +354,13 @@ public partial class MainPageViewModel : ObservableObject
         Save();
         if (_deviceClient is null || !_deviceClient.State.IsConnected)
         {
-            SaveStatus = "Perfil salvo — conecte o N70 para aplicá-lo";
+            SaveStatus = "Profile saved — connect the N70 to apply it";
             return;
         }
 
         await RunDeviceActionAsync(
             client => ApplyProfileToDeviceAsync(CreateProfile()),
-            "Perfil aplicado e confirmado pelo N70");
+            "Profile applied and confirmed by the N70");
     }
 
     [RelayCommand]
@@ -369,40 +368,40 @@ public partial class MainPageViewModel : ObservableObject
     {
         if (_deviceClient is null || !_deviceClient.State.IsConnected)
         {
-            SaveStatus = "Equalizador salvo — conecte o N70 para aplicá-lo";
+            SaveStatus = "Equalizer saved — connect the N70 to apply it";
             return;
         }
 
-        if (SelectedEqualizerPreset == "Personalizado")
+        if (SelectedEqualizerPreset == "Custom")
         {
             if (!EqualizerSupported)
             {
-                SaveStatus = "Este firmware não expôs um canal de equalizador compatível";
+                SaveStatus = "This firmware does not expose a compatible equalizer channel";
                 return;
             }
 
             await RunDeviceActionAsync(
                 client => client.SetCustomEqualizerAsync(GetEqualizerBands()),
-                "Equalizador personalizado confirmado pelo N70");
+                "Custom equalizer confirmed by the N70");
             return;
         }
 
         if (!EqualizerPresetsSupported)
         {
-            SaveStatus = "O firmware 3.0.13 aceita a curva personalizada, mas não expõe o canal antigo de presets";
+            SaveStatus = "Firmware 3.0.13 supports the custom curve but does not expose the legacy preset channel";
             return;
         }
 
         await RunDeviceActionAsync(
             client => client.SetEqualizerPresetAsync(EqualizerPresetIds[SelectedEqualizerPreset]),
-            "Preset confirmado pelo N70");
+            "Preset confirmed by the N70");
     }
 
     [RelayCommand]
     private void SaveProfile()
     {
         Save();
-        SaveStatus = "Preferências salvas neste PC";
+        SaveStatus = "Preferences saved on this PC";
     }
 
     [RelayCommand]
@@ -421,7 +420,7 @@ public partial class MainPageViewModel : ObservableObject
             EqBand8 = 0;
             EqBand9 = 0;
             EqBand10 = 0;
-            SelectedEqualizerPreset = "Personalizado";
+            SelectedEqualizerPreset = "Custom";
         }
         finally
         {
@@ -429,7 +428,7 @@ public partial class MainPageViewModel : ObservableObject
         }
 
         Save();
-        SaveStatus = "Equalizador zerado — clique em Aplicar";
+        SaveStatus = "Equalizer reset — click Apply";
     }
 
     public void Shutdown()
@@ -469,36 +468,36 @@ public partial class MainPageViewModel : ObservableObject
     partial void OnSelectedEqualizerPresetChanged(string value)
     {
         Save();
-        if (value != "Personalizado" && EqualizerPresetsSupported &&
+        if (value != "Custom" && EqualizerPresetsSupported &&
             EqualizerPresetIds.TryGetValue(value, out var preset))
         {
-            RunWhenConnected(client => client.SetEqualizerPresetAsync(preset), "Equalizador confirmado pelo N70");
+            RunWhenConnected(client => client.SetEqualizerPresetAsync(preset), "Equalizer confirmed by the N70");
         }
     }
 
     partial void OnWearDetectionChanged(bool value) => PersistAndRun(
         client => client.SetWearDetectionAsync(value),
-        value ? "Detecção de uso ligada no N70" : "Detecção de uso desligada no N70");
+        value ? "Wear detection enabled on the N70" : "Wear detection disabled on the N70");
 
     partial void OnLdacEnabledChanged(bool value) => PersistAndRun(
         client => client.SetLdacAsync(value),
-        "LDAC enviado ao N70; o fone pode reiniciar a conexão");
+        "LDAC sent to the N70; the earbuds may restart the connection");
 
     partial void OnMultipointEnabledChanged(bool value) => PersistAndRun(
         client => client.SetMultipointAsync(value),
-        "Multiponto enviado ao N70; o fone pode reiniciar a conexão");
+        "Multipoint sent to the N70; the earbuds may restart the connection");
 
     partial void OnGameModeEnabledChanged(bool value) => PersistAndRun(
         client => client.SetGameModeAsync(value),
-        "Modo jogo confirmado pelo N70");
+        "Game mode confirmed by the N70");
 
     partial void OnWindReductionEnabledChanged(bool value) => PersistAndRun(
         client => client.SetWindDetectionAsync(value),
-        "Detecção de vento confirmada pelo N70");
+        "Wind detection confirmed by the N70");
 
     partial void OnSleepModeEnabledChanged(bool value) => PersistAndRun(
         client => client.SetSleepModeAsync(value),
-        "Modo sono confirmado pelo N70");
+        "Sleep mode confirmed by the N70");
 
     partial void OnAutoApplyEnabledChanged(bool value) => Save();
 
@@ -513,8 +512,8 @@ public partial class MainPageViewModel : ObservableObject
         {
             _windowsStartupService.SetEnabled(value);
             StartupStatus = value
-                ? "Será iniciado em segundo plano, somente na bandeja."
-                : "Não será iniciado automaticamente com o Windows.";
+                ? "Will start in the background, in the notification area only."
+                : "Will not start automatically with Windows.";
         }
         catch (Exception exception) when (exception is UnauthorizedAccessException or IOException or InvalidOperationException)
         {
@@ -528,7 +527,7 @@ public partial class MainPageViewModel : ObservableObject
                 _isUpdatingStartupSetting = false;
             }
 
-            StartupStatus = "Não foi possível alterar a inicialização automática.";
+            StartupStatus = "Could not change the startup setting.";
         }
     }
 
@@ -565,11 +564,11 @@ public partial class MainPageViewModel : ObservableObject
 
     partial void OnDisconnectTimeoutChanged(string value) => PersistAndRun(
         client => client.SetAutoPowerOffAsync(ToAutoPowerOffMinutes(value)),
-        "Desligamento automático confirmado pelo N70");
+        "Automatic power off confirmed by the N70");
 
     private async Task ApplyProfileToDeviceAsync(DeviceProfile profile)
     {
-        var client = _deviceClient ?? throw new InvalidOperationException("O N70 não está conectado.");
+        var client = _deviceClient ?? throw new InvalidOperationException("The N70 is not connected.");
         var state = client.State;
 
         if (state.WearDetectionEnabled.HasValue && state.WearDetectionEnabled != profile.WearDetection)
@@ -615,7 +614,7 @@ public partial class MainPageViewModel : ObservableObject
             await client.SetAutoPowerOffAsync(autoPowerOff);
         }
 
-        if (profile.SelectedEqualizerPreset == "Personalizado" && EqualizerSupported)
+        if (profile.SelectedEqualizerPreset == "Custom" && EqualizerSupported)
         {
             await client.SetCustomEqualizerAsync(profile.EqBands);
         }
@@ -662,7 +661,7 @@ public partial class MainPageViewModel : ObservableObject
         try
         {
             IsDeviceConnected = state.IsConnected;
-            ConnectionStatus = state.IsConnected ? "Controle QCY conectado" : "Controle desconectado";
+            ConnectionStatus = state.IsConnected ? "QCY control connected" : "Control disconnected";
             DeviceName = state.DeviceName;
             FirmwareVersion = state.FirmwareVersion ?? "—";
             if (state.Battery.Left.HasValue || state.Battery.Right.HasValue || state.Battery.Case.HasValue)
@@ -676,7 +675,7 @@ public partial class MainPageViewModel : ObservableObject
             UpdateBatteryDisplays();
             if (state.Battery.Left.HasValue || state.Battery.Right.HasValue || state.Battery.Case.HasValue)
             {
-                BatteryStatus = "Atualiza automaticamente enquanto o controle estiver conectado";
+                BatteryStatus = "Updates automatically while the control channel is connected";
             }
 
             WearDetectionSupported = state.WearDetectionProtocol != QcyWearDetectionProtocol.Unknown;
@@ -746,21 +745,40 @@ public partial class MainPageViewModel : ObservableObject
         {
             _isSynchronizingDevice = false;
         }
+
+        // Responses can arrive after the initial refresh timeout. Re-evaluate the
+        // capabilities on every state update so a late equalizer response is not
+        // left disabled for the remainder of the connection.
+        UpdateCapabilities(state);
     }
 
-    private void UpdateCapabilities()
+    private void UpdateCapabilities(QcyDeviceState state)
     {
         var characteristics = _connection?.Characteristics ?? [];
-        EqualizerPresetsSupported = characteristics.Any(info => info.Uuid == QcyUuids.Equalizer && info.CanWrite);
-        var customEqualizerSupported = _deviceClient?.State.EqualizerGains.Count == 10;
-        EqualizerSupported = EqualizerPresetsSupported || customEqualizerSupported;
-        EqualizerCapabilityStatus = EqualizerPresetsSupported
-            ? "Presets e curva personalizada disponíveis"
-            : customEqualizerSupported
-                ? "Curva personalizada disponível · presets não expostos pelo firmware"
-                : "Canal de equalizador não encontrado";
-        KeyFunctionsSupported = characteristics.Any(info => info.Uuid == QcyUuids.KeyFunctions && info.CanWrite);
-        WearDetectionSupported = _deviceClient?.State.WearDetectionProtocol != QcyWearDetectionProtocol.Unknown;
+        var commandChannelSupported = state.IsConnected &&
+            characteristics.Any(info => info.Uuid == QcyUuids.Command && info.CanWrite) &&
+            characteristics.Any(info => info.Uuid == QcyUuids.Notification && info.CanNotify);
+        EqualizerPresetsSupported = state.IsConnected &&
+            characteristics.Any(info => info.Uuid == QcyUuids.Equalizer && info.CanWrite);
+        var customEqualizerConfirmed = state.IsConnected && state.EqualizerGains.Count == 10;
+
+        // The custom ten-band EQ is sent through the validated command/notification
+        // channel, not through the optional legacy preset characteristic (000B).
+        // The write path still requires a device response before reporting success.
+        EqualizerSupported = commandChannelSupported;
+        EqualizerCapabilityStatus = !state.IsConnected
+            ? "Availability checked on connection"
+            : EqualizerPresetsSupported
+            ? "Presets and custom curve available"
+            : customEqualizerConfirmed
+                ? "Custom curve available · presets not exposed by the firmware"
+                : commandChannelSupported
+                    ? "Custom curve available through the control channel · presets not exposed by the firmware"
+                    : "Equalizer control channel not found";
+        KeyFunctionsSupported = state.IsConnected &&
+            characteristics.Any(info => info.Uuid == QcyUuids.KeyFunctions && info.CanWrite);
+        WearDetectionSupported = state.IsConnected &&
+            state.WearDetectionProtocol != QcyWearDetectionProtocol.Unknown;
     }
 
     private void PersistTouchFunctions()
@@ -768,14 +786,14 @@ public partial class MainPageViewModel : ObservableObject
         Save();
         RunWhenConnected(
             client => client.SetKeyFunctionsAsync(BuildKeyFunctionMap(CreateProfile(), client.State.KeyFunctions)),
-            "Gestos confirmados pelo N70");
+            "Gestures confirmed by the N70");
     }
 
     private void PersistEqualizerBand()
     {
-        if (!_isSynchronizingDevice && SelectedEqualizerPreset != "Personalizado")
+        if (!_isSynchronizingDevice && SelectedEqualizerPreset != "Custom")
         {
-            SelectedEqualizerPreset = "Personalizado";
+            SelectedEqualizerPreset = "Custom";
         }
 
         Save();
@@ -815,7 +833,7 @@ public partial class MainPageViewModel : ObservableObject
 
         try
         {
-            SaveStatus = $"Aplicando {NoiseControlDisplayName(requested)}…";
+            SaveStatus = $"Applying {NoiseControlDisplayName(requested)}…";
             await client.SetNoiseModeAsync(
                 requested.Mode,
                 requested.CancellationMode ?? QcyNoiseCancellationMode.Adaptive,
@@ -827,12 +845,12 @@ public partial class MainPageViewModel : ObservableObject
 
             if (client.State.NoiseControl != requested)
             {
-                throw new InvalidOperationException("A leitura final não corresponde à última escolha.");
+                throw new InvalidOperationException("The final reading does not match the latest selection.");
             }
 
             _pendingNoiseControl = null;
             ApplyDeviceState(client.State);
-            SaveStatus = $"{NoiseControlDisplayName(requested)} confirmado pelo N70";
+            SaveStatus = $"{NoiseControlDisplayName(requested)} confirmed by the N70";
         }
         catch (OperationCanceledException) when (version != Volatile.Read(ref _noiseControlRequestVersion))
         {
@@ -846,7 +864,7 @@ public partial class MainPageViewModel : ObservableObject
 
             _pendingNoiseControl = null;
             ApplyDeviceState(client.State);
-            SaveStatus = $"Não confirmado pelo N70: {FriendlyError(exception)}";
+            SaveStatus = $"Not confirmed by the N70: {FriendlyError(exception)}";
         }
     }
 
@@ -874,7 +892,7 @@ public partial class MainPageViewModel : ObservableObject
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
             {
-                BatteryStatus = "A leitura automática falhou; tentando novamente em breve";
+                BatteryStatus = "Automatic reading failed; trying again shortly";
             }
 
             return;
@@ -904,13 +922,13 @@ public partial class MainPageViewModel : ObservableObject
 
         try
         {
-            SaveStatus = "Enviando ao N70…";
+            SaveStatus = "Sending to the N70…";
             await action(client);
             SaveStatus = successMessage;
         }
         catch (Exception exception)
         {
-            SaveStatus = $"Não confirmado pelo N70: {FriendlyError(exception)}";
+            SaveStatus = $"Not confirmed by the N70: {FriendlyError(exception)}";
         }
     }
 
@@ -921,7 +939,7 @@ public partial class MainPageViewModel : ObservableObject
             await Task.Delay(350, cancellationToken);
             await RunDeviceActionAsync(
                 client => client.SetPromptVolumeAsync(value, cancellationToken),
-                "Volume dos avisos confirmado pelo N70");
+                "Prompt volume confirmed by the N70");
         }
         catch (OperationCanceledException)
         {
@@ -936,9 +954,9 @@ public partial class MainPageViewModel : ObservableObject
         {
             try
             {
-                ConnectionStatus = "Conectando ao serviço QCY A001";
+                ConnectionStatus = "Connecting to the QCY A001 service";
                 _connection = await _bluetoothTransport.ConnectAsync(candidate);
-                ConnectionStatus = "Lendo configurações e bateria do N70";
+                ConnectionStatus = "Reading N70 settings and battery";
                 _deviceClient = await QcyDeviceClient.CreateAsync(_connection);
                 _deviceClient.StateChanged += DeviceClient_StateChanged;
                 return candidate;
@@ -1012,12 +1030,12 @@ public partial class MainPageViewModel : ObservableObject
         WearDetectionSupported = false;
         EqualizerSupported = false;
         EqualizerPresetsSupported = false;
-        EqualizerCapabilityStatus = "Disponibilidade verificada ao conectar";
+        EqualizerCapabilityStatus = "Availability checked on connection";
         KeyFunctionsSupported = false;
         if (updateStatus)
         {
-            ConnectionStatus = "Controle desconectado";
-            DiscoveryStatus = "Conexão de controle encerrada";
+            ConnectionStatus = "Control disconnected";
+            DiscoveryStatus = "Control connection closed";
         }
     }
 
@@ -1076,13 +1094,13 @@ public partial class MainPageViewModel : ObservableObject
         {
             RunAtStartupEnabled = _windowsStartupService.IsEnabled;
             StartupStatus = RunAtStartupEnabled
-                ? "Será iniciado em segundo plano, somente na bandeja."
-                : "Abre em segundo plano, somente na bandeja.";
+                ? "Will start in the background, in the notification area only."
+                : "Opens in the background, in the notification area only.";
         }
         catch (Exception exception) when (exception is UnauthorizedAccessException or IOException or InvalidOperationException)
         {
             RunAtStartupEnabled = false;
-            StartupStatus = "Não foi possível consultar a inicialização automática.";
+            StartupStatus = "Could not read the startup setting.";
         }
         finally
         {
@@ -1102,7 +1120,7 @@ public partial class MainPageViewModel : ObservableObject
 
     private DeviceProfile CreateProfile() => new()
     {
-        ProfileVersion = 3,
+        ProfileVersion = 4,
         KnownBluetoothAddress = _knownBluetoothAddress,
         KnownControlAddress = _knownControlAddress,
         KnownOtherAddress = _knownOtherAddress,
@@ -1161,7 +1179,7 @@ public partial class MainPageViewModel : ObservableObject
 
     private static QcyNoiseMode ToNoiseMode(string value) => value switch
     {
-        "Transparência" => QcyNoiseMode.Transparency,
+        "Transparency" => QcyNoiseMode.Transparency,
         "Normal" => QcyNoiseMode.Normal,
         _ => QcyNoiseMode.NoiseCancellation,
     };
@@ -1197,36 +1215,36 @@ public partial class MainPageViewModel : ObservableObject
 
     private static string FromNoiseMode(QcyNoiseMode value) => value switch
     {
-        QcyNoiseMode.Transparency => "Transparência",
+        QcyNoiseMode.Transparency => "Transparency",
         QcyNoiseMode.Normal => "Normal",
-        _ => "Cancelamento",
+        _ => "Noise cancellation",
     };
 
     private static ushort ToAutoPowerOffMinutes(string value) => value switch
     {
-        "5 minutos" => 5,
-        "15 minutos" => 15,
-        "30 minutos" => 30,
-        "1 hora" => 60,
+        "5 minutes" => 5,
+        "15 minutes" => 15,
+        "30 minutes" => 30,
+        "1 hour" => 60,
         _ => ushort.MaxValue,
     };
 
     private static string FromAutoPowerOffMinutes(ushort value) => value switch
     {
-        5 => "5 minutos",
-        15 => "15 minutos",
-        30 => "30 minutos",
-        60 => "1 hora",
-        _ => "Nunca",
+        5 => "5 minutes",
+        15 => "15 minutes",
+        30 => "30 minutes",
+        60 => "1 hour",
+        _ => "Never",
     };
 
     private static string FromTouchAction(byte id) =>
-        TouchActionIds.FirstOrDefault(pair => pair.Value == id).Key ?? "Sem ação";
+        TouchActionIds.FirstOrDefault(pair => pair.Value == id).Key ?? "No action";
 
     private static string FriendlyError(Exception exception) => exception switch
     {
-        UnauthorizedAccessException => "O Windows bloqueou o acesso Bluetooth ao aplicativo.",
-        OperationCanceledException => "Operação Bluetooth cancelada.",
+        UnauthorizedAccessException => "Windows blocked Bluetooth access for the app.",
+        OperationCanceledException => "Bluetooth operation canceled.",
         _ => exception.Message,
     };
 }

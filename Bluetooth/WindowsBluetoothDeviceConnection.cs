@@ -55,7 +55,7 @@ internal sealed class WindowsBluetoothDeviceConnection : IBluetoothDeviceConnect
             cancellationToken.ThrowIfCancellationRequested();
             if (result.Status != GattCommunicationStatus.Success)
             {
-                throw new InvalidOperationException($"Não foi possível enumerar características QCY: {result.Status}.");
+                throw new InvalidOperationException($"Could not enumerate QCY characteristics: {result.Status}.");
             }
 
             return new WindowsBluetoothDeviceConnection(
@@ -78,7 +78,7 @@ internal sealed class WindowsBluetoothDeviceConnection : IBluetoothDeviceConnect
         cancellationToken.ThrowIfCancellationRequested();
         if (result.Status != GattCommunicationStatus.Success)
         {
-            throw new InvalidOperationException($"Leitura GATT {characteristicUuid:D} falhou: {result.Status}.");
+            throw new InvalidOperationException($"GATT read {characteristicUuid:D} failed: {result.Status}.");
         }
 
         return WindowsBluetoothTransport.ReadBuffer(result.Value);
@@ -101,7 +101,7 @@ internal sealed class WindowsBluetoothDeviceConnection : IBluetoothDeviceConnect
         cancellationToken.ThrowIfCancellationRequested();
         if (result.Status != GattCommunicationStatus.Success)
         {
-            throw new InvalidOperationException($"Escrita GATT {characteristicUuid:D} falhou: {result.Status}.");
+            throw new InvalidOperationException($"GATT write {characteristicUuid:D} failed: {result.Status}.");
         }
     }
 
@@ -124,7 +124,7 @@ internal sealed class WindowsBluetoothDeviceConnection : IBluetoothDeviceConnect
         {
             characteristic.ValueChanged -= Characteristic_ValueChanged;
             _subscriptions.Remove(characteristicUuid);
-            throw new InvalidOperationException($"Assinatura GATT {characteristicUuid:D} falhou: {status}.");
+            throw new InvalidOperationException($"GATT subscription {characteristicUuid:D} failed: {status}.");
         }
     }
 
@@ -157,7 +157,7 @@ internal sealed class WindowsBluetoothDeviceConnection : IBluetoothDeviceConnect
         ObjectDisposedException.ThrowIf(_disposed, this);
         return _characteristics.TryGetValue(uuid, out var characteristic)
             ? characteristic
-            : throw new NotSupportedException($"O N70 não expôs a característica {uuid:D}.");
+            : throw new NotSupportedException($"The N70 did not expose characteristic {uuid:D}.");
     }
 
     private void Characteristic_ValueChanged(GattCharacteristic sender, WindowsGattValueChangedEventArgs args)

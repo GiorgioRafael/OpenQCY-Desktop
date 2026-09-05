@@ -10,7 +10,7 @@
   <Identity
     Name="5CB7AD64-0805-4207-A878-2B6CB812817F"
     Publisher="CN=GiorgioRafael"
-    Version="1.0.0.0" />
+    Version="0.2.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="5CB7AD64-0805-4207-A878-2B6CB812817F" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 

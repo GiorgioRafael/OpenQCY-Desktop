@@ -29,6 +29,7 @@ O OpenQCY Desktop já possui uma implementação real para o QCY MeloBuds N70. E
 - leitura real do firmware e das baterias esquerda, direita e do estojo
 - reconexão automática pelo endereço de controle salvo localmente, pelo serviço GATT em cache ou pelo próximo anúncio do N70
 - inicialização opcional com o Windows, em segundo plano somente pela área de notificação
+- interfaces da janela principal e da área de notificação em inglês
 - leitura de ANC, modo jogo, modo sono, LDAC, multiponto, vento, volume dos avisos e desligamento automático
 - detecção de uso ligada e desligada pela interface do PC, com confirmação lida do fone
 - perfil local reaplicado quando o N70 reconecta
@@ -74,10 +75,10 @@ dotnet restore -r win-x64
 dotnet build -c Debug -p:Platform=x64 -p:RuntimeIdentifier=win-x64
 dotnet run -c Debug -p:Platform=x64 -p:RuntimeIdentifier=win-x64
 dotnet test tests/OpenQCY.Desktop.Tests.csproj -c Release
-pwsh ./scripts/build-installer.ps1 -Version 0.1.0
+pwsh ./scripts/build-installer.ps1 -Version 0.2.0
 ```
 
-O GitHub Actions gera as duas distribuições. Enviar uma tag semântica como `v0.1.0` publica o instalador, o ZIP portátil e os checksums no GitHub Releases. Consulte o [guia de lançamento](docs/releasing.md), a [arquitetura](docs/architecture.md), a [pesquisa do protocolo](docs/protocol-research.md) e a [linha de base de desempenho](docs/performance.md).
+O GitHub Actions gera as duas distribuições. Enviar uma tag semântica como `v0.2.0` publica o instalador, o ZIP portátil e os checksums no GitHub Releases. Consulte o [guia de lançamento](docs/releasing.md), a [arquitetura](docs/architecture.md), a [pesquisa do protocolo](docs/protocol-research.md) e a [linha de base de desempenho](docs/performance.md).
 
 ## Segurança
 

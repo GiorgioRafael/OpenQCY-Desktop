@@ -108,7 +108,7 @@ public sealed class QcyDeviceClient : IAsyncDisposable
         else
         {
             throw new NotSupportedException(
-                "O N70 não confirmou um comando compatível de detecção de uso nesta conexão.");
+                "The N70 did not confirm a compatible wear-detection command on this connection.");
         }
 
         await WriteAndConfirmAsync(opcode, packet, cancellationToken);
@@ -134,7 +134,7 @@ public sealed class QcyDeviceClient : IAsyncDisposable
         if (confirmed != expected)
         {
             throw new InvalidOperationException(
-                $"O N70 respondeu {FormatNoiseState(confirmed)}, mas o aplicativo solicitou {FormatNoiseState(expected)}.");
+                $"The N70 reported {FormatNoiseState(confirmed)}, but the app requested {FormatNoiseState(expected)}.");
         }
     }
 
@@ -304,7 +304,7 @@ public sealed class QcyDeviceClient : IAsyncDisposable
         if (response is null)
         {
             throw new InvalidOperationException(
-                $"O N70 não confirmou o comando 0x{opcode:X2}; a alteração não foi considerada aplicada.");
+                $"The N70 did not confirm command 0x{opcode:X2}; the change was not considered applied.");
         }
     }
 
@@ -384,7 +384,7 @@ public sealed class QcyDeviceClient : IAsyncDisposable
         {
             foreach (var pending in _pendingResponses.Values)
             {
-                pending.TrySetException(new InvalidOperationException("O N70 desconectou durante o comando."));
+                pending.TrySetException(new InvalidOperationException("The N70 disconnected during the command."));
             }
         }
     }
@@ -480,7 +480,7 @@ public sealed class QcyDeviceClient : IAsyncDisposable
         var characteristic = _connection.Characteristics.FirstOrDefault(info => info.Uuid == uuid);
         if (characteristic is null || (canWrite && !characteristic.CanWrite) || (canNotify && !characteristic.CanNotify))
         {
-            throw new NotSupportedException($"O canal QCY obrigatório {uuid:D} não está disponível.");
+            throw new NotSupportedException($"Required QCY channel {uuid:D} is unavailable.");
         }
     }
 
@@ -517,7 +517,7 @@ public sealed class QcyDeviceClient : IAsyncDisposable
 
     private static string FormatNoiseState(QcyNoiseControlState? state) =>
         state is null
-            ? "um estado desconhecido"
+            ? "an unknown state"
             : Convert.ToHexString(state.ToParameters());
 
     private static string FormatVersion(ReadOnlySpan<byte> value) =>

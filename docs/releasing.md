@@ -13,8 +13,8 @@ Start from an up-to-date, clean `main` branch and choose the next semantic versi
 ```powershell
 git switch main
 git pull --ff-only
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 The [`release` workflow](../.github/workflows/release.yml) tests the protocol library, publishes the self-contained app, builds the installer, creates the checksums, and opens the GitHub release with generated notes.
@@ -26,7 +26,7 @@ The tag and application version must follow `MAJOR.MINOR.PATCH`. The installer f
 Install .NET 10 and Inno Setup 6.7 or later, then run:
 
 ```powershell
-pwsh ./scripts/build-installer.ps1 -Version 0.1.0
+pwsh ./scripts/build-installer.ps1 -Version 0.2.0
 ```
 
 The generated files are written only below `artifacts/` and are ignored by Git.

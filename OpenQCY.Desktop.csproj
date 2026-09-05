@@ -4,7 +4,7 @@
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.22000.0</TargetPlatformMinVersion>
     <RootNamespace>OpenQCY_Desktop</RootNamespace>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Product>OpenQCY Desktop</Product>
     <Company>OpenQCY Community</Company>
     <Authors>GiorgioRafael and OpenQCY contributors</Authors>

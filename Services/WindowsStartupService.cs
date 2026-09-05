@@ -24,7 +24,7 @@ public sealed class WindowsStartupService
     public void SetEnabled(bool enabled)
     {
         using var runKey = Registry.CurrentUser.CreateSubKey(RunKeyPath, writable: true)
-            ?? throw new InvalidOperationException("Não foi possível acessar a inicialização do Windows.");
+            ?? throw new InvalidOperationException("Could not access Windows startup settings.");
 
         if (enabled)
         {
@@ -49,7 +49,7 @@ public sealed class WindowsStartupService
         ArgumentException.ThrowIfNullOrWhiteSpace(executablePath);
         if (executablePath.Contains('"'))
         {
-            throw new ArgumentException("O caminho do aplicativo contém aspas.", nameof(executablePath));
+            throw new ArgumentException("The application path contains quotation marks.", nameof(executablePath));
         }
 
         return $"\"{executablePath}\" {StartupArgument}";
@@ -57,5 +57,5 @@ public sealed class WindowsStartupService
 
     private static string GetExecutablePath() =>
         Environment.ProcessPath
-        ?? throw new InvalidOperationException("O caminho do OpenQCY Desktop não está disponível.");
+        ?? throw new InvalidOperationException("The OpenQCY Desktop path is unavailable.");
 }
