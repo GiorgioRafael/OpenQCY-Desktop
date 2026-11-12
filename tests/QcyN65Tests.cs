@@ -208,6 +208,26 @@ public sealed class QcyN65Tests
     }
 
     [TestMethod]
+    public void N65WritesMatchCapturedFrames()
+    {
+        CollectionAssert.AreEqual(
+            Convert.FromHexString("FEDCBAC0FF000498230100EF"),
+            QcyJieliFrame.Wrap(0x98, QcyCommands.SetN65Ldac(false)));
+        CollectionAssert.AreEqual(
+            Convert.FromHexString("FEDCBAC0FF0005C64A020100EF"),
+            QcyJieliFrame.Wrap(0xC6, QcyCommands.SetN65GameMode(true)));
+        CollectionAssert.AreEqual(
+            Convert.FromHexString("FEDCBAC0FF0005D64A020000EF"),
+            QcyJieliFrame.Wrap(0xD6, QcyCommands.SetN65GameMode(false)));
+        CollectionAssert.AreEqual(
+            Convert.FromHexString("FEDCBAC0FF0004E8270101EF"),
+            QcyJieliFrame.Wrap(0xE8, QcyCommands.SetDynamicEqualizer(true)));
+        CollectionAssert.AreEqual(
+            Convert.FromHexString("FEDCBAC0FF0004EF16013CEF"),
+            QcyJieliFrame.Wrap(0xEF, QcyCommands.SetChannelBalance(60)));
+    }
+
+    [TestMethod]
     public void N65VendorIdIsSupported()
     {
         Assert.IsTrue(QcyUuids.IsSupported(32894));
