@@ -179,6 +179,17 @@ public static class QcyCommands
     public static byte[] SetMultipoint(bool enabled) => Toggle(0x24, enabled);
     public static byte[] SetWindDetection(bool enabled) => Toggle(0x2A, enabled);
 
+    // The N65 uses 01/00 instead of 01/02, and a different opcode for game mode.
+    public static byte[] SetN65GameMode(bool enabled) => QcyPacket.Pack(0x4A, [enabled ? (byte)0x01 : (byte)0x00, 0x00]);
+    public static byte[] SetN65Ldac(bool enabled) => Switch(0x23, enabled);
+    public static byte[] SetDynamicEqualizer(bool enabled) => Switch(0x27, enabled);
+
+    public static byte[] SetN65KeyFunction(byte gesture, byte function) =>
+        QcyPacket.Pack(0x2B, [gesture, function]);
+
+    public static byte[] SetChannelBalance(byte value) =>
+        QcyPacket.Pack(0x16, [Math.Min(value, (byte)100)]);
+
     public static byte[] SetPromptVolume(byte value) =>
         QcyPacket.Pack(0x1D, [value]);
 
@@ -247,4 +258,7 @@ public static class QcyCommands
 
     private static byte[] Toggle(byte opcode, bool enabled) =>
         QcyPacket.Pack(opcode, [enabled ? (byte)0x01 : (byte)0x02]);
+
+    private static byte[] Switch(byte opcode, bool enabled) =>
+        QcyPacket.Pack(opcode, [enabled ? (byte)0x01 : (byte)0x00]);
 }

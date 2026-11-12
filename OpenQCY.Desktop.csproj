@@ -55,6 +55,8 @@
     <Compile Remove="Protocol\QcyCommands.cs" />
     <Compile Remove="Protocol\QcyPacket.cs" />
     <Compile Remove="Protocol\QcyUuids.cs" />
+    <Compile Remove="Protocol\QcyJieliFrame.cs" />
+    <Compile Remove="Protocol\QcyN65Equalizer.cs" />
     <Compile Remove="Protocol\obj\**\*.cs" />
     <Content Remove="tests\**\*" />
     <None Remove="tests\**\*" />

@@ -4,6 +4,7 @@ public interface IBluetoothDeviceConnection : IAsyncDisposable
 {
     string Name { get; }
     ulong BluetoothAddress { get; }
+    Guid ServiceUuid { get; }
     bool IsConnected { get; }
     IReadOnlyCollection<GattCharacteristicInfo> Characteristics { get; }
 

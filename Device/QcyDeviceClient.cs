@@ -7,20 +7,35 @@ namespace OpenQCY_Desktop.Device;
 public sealed class QcyDeviceClient : IAsyncDisposable
 {
     private static readonly TimeSpan ResponseTimeout = TimeSpan.FromSeconds(2.5);
+    private static readonly TimeSpan PushTimeout = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan NoiseTransition = TimeSpan.FromSeconds(3);
+
+    // Opcodes validated only on the N70. The N65 pushes some of them with other meanings (0x10).
+    private static readonly HashSet<byte> N70OnlyOpcodes = [0x06, 0x09, 0x10, 0x14, 0x1D, 0x24, 0x2A, 0x2C];
 
     private readonly IBluetoothDeviceConnection _connection;
     private readonly SemaphoreSlim _commandLock = new(1, 1);
     private readonly object _stateLock = new();
     private readonly Dictionary<byte, TaskCompletionSource<byte[]>> _pendingResponses = [];
+    private readonly Dictionary<byte, TaskCompletionSource<byte>> _pendingAcknowledgements = [];
+    private readonly bool _isJieli;
+    private readonly Guid _commandUuid;
+    private readonly Guid _notificationUuid;
+    private byte _sequence;
+    private DateTimeOffset _lastNoiseChange = DateTimeOffset.MinValue;
     private bool _disposed;
 
     private QcyDeviceClient(IBluetoothDeviceConnection connection)
     {
         _connection = connection;
+        _isJieli = connection.ServiceUuid == QcyUuids.JieliService;
+        _commandUuid = _isJieli ? QcyUuids.JieliCommand : QcyUuids.Command;
+        _notificationUuid = _isJieli ? QcyUuids.JieliNotification : QcyUuids.Notification;
         State = new QcyDeviceState
         {
             IsConnected = connection.IsConnected,
             DeviceName = connection.Name,
+            ProtocolVariant = _isJieli ? QcyProtocolVariant.Jieli : QcyProtocolVariant.Standard,
         };
 
         _connection.ValueChanged += Connection_ValueChanged;
@@ -28,6 +43,7 @@ public sealed class QcyDeviceClient : IAsyncDisposable
     }
 
     public QcyDeviceState State { get; private set; }
+    public bool IsJieli => _isJieli;
 
     public event EventHandler<QcyDeviceState>? StateChanged;
     public event EventHandler<string>? ProtocolTrace;
@@ -52,6 +68,19 @@ public sealed class QcyDeviceClient : IAsyncDisposable
 
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
+        if (_isJieli)
+        {
+            foreach (var opcode in new byte[]
+            {
+                0x30, 0x2F, 0x17, 0x22, 0x23, 0x4A, 0x27, 0x16, 0x2B,
+            })
+            {
+                await QueryAsync(opcode, cancellationToken);
+            }
+
+            return;
+        }
+
         await ReadDirectCharacteristicsAsync(cancellationToken);
         await QueryAsync(0x2C, cancellationToken);
         if (State.WearDetectionProtocol == QcyWearDetectionProtocol.Unknown)
@@ -108,7 +137,7 @@ public sealed class QcyDeviceClient : IAsyncDisposable
         else
         {
             throw new NotSupportedException(
-                "The N70 did not confirm a compatible wear-detection command on this connection.");
+                "The earbuds did not confirm a compatible wear-detection command on this connection.");
         }
 
         await WriteAndConfirmAsync(opcode, packet, cancellationToken);
@@ -120,6 +149,12 @@ public sealed class QcyDeviceClient : IAsyncDisposable
         CancellationToken cancellationToken = default)
     {
         var expected = QcyNoiseControlState.Create(mode, cancellationMode);
+        if (_isJieli)
+        {
+            await WriteNoiseModeAsync(expected, cancellationToken);
+            return;
+        }
+
         var response = await SendAndAwaitAsync(
             0x17,
             QcyCommands.SetNoiseMode(mode, cancellationMode),
@@ -134,18 +169,49 @@ public sealed class QcyDeviceClient : IAsyncDisposable
         if (confirmed != expected)
         {
             throw new InvalidOperationException(
-                $"The N70 reported {FormatNoiseState(confirmed)}, but the app requested {FormatNoiseState(expected)}.");
+                $"The earbuds reported {FormatNoiseState(confirmed)}, but the app requested {FormatNoiseState(expected)}.");
         }
     }
 
     public Task SetGameModeAsync(bool enabled, CancellationToken cancellationToken = default) =>
-        WriteAndConfirmAsync(0x09, QcyCommands.SetGameMode(enabled), cancellationToken);
+        _isJieli
+            ? WriteBeforeRestartAsync(
+                0x4A,
+                QcyCommands.SetN65GameMode(enabled),
+                state => state with { GameModeEnabled = enabled },
+                cancellationToken)
+            : WriteAndConfirmAsync(0x09, QcyCommands.SetGameMode(enabled), cancellationToken);
+
+    public Task SetDynamicEqualizerAsync(bool enabled, CancellationToken cancellationToken = default) =>
+        WriteAndConfirmAsync(0x27, QcyCommands.SetDynamicEqualizer(enabled), cancellationToken);
+
+    public async Task SetN65KeyFunctionAsync(
+        byte gesture,
+        byte function,
+        CancellationToken cancellationToken = default)
+    {
+        await WriteAndConfirmAsync(0x2B, QcyCommands.SetN65KeyFunction(gesture, function), cancellationToken);
+        if (State.KeyFunctions.GetValueOrDefault(gesture) != function)
+        {
+            throw new InvalidOperationException(
+                $"The earbuds kept gesture 0x{gesture:X2} on function 0x{State.KeyFunctions.GetValueOrDefault(gesture):X2}.");
+        }
+    }
+
+    public Task SetChannelBalanceAsync(byte value, CancellationToken cancellationToken = default) =>
+        WriteAndConfirmAsync(0x16, QcyCommands.SetChannelBalance(value), cancellationToken);
 
     public Task SetSleepModeAsync(bool enabled, CancellationToken cancellationToken = default) =>
         WriteAndConfirmAsync(0x10, QcyCommands.SetSleepMode(enabled), cancellationToken);
 
     public Task SetLdacAsync(bool enabled, CancellationToken cancellationToken = default) =>
-        WriteAndConfirmAsync(0x23, QcyCommands.SetLdac(enabled), cancellationToken);
+        _isJieli
+            ? WriteBeforeRestartAsync(
+                0x23,
+                QcyCommands.SetN65Ldac(enabled),
+                state => state with { LdacEnabled = enabled },
+                cancellationToken)
+            : WriteAndConfirmAsync(0x23, QcyCommands.SetLdac(enabled), cancellationToken);
 
     public Task SetMultipointAsync(bool enabled, CancellationToken cancellationToken = default) =>
         WriteAndConfirmAsync(0x24, QcyCommands.SetMultipoint(enabled), cancellationToken);
@@ -165,6 +231,12 @@ public sealed class QcyDeviceClient : IAsyncDisposable
 
     public async Task SetEqualizerPresetAsync(byte presetIndex, CancellationToken cancellationToken = default)
     {
+        if (_isJieli)
+        {
+            await WriteAndConfirmAsync(0x22, QcyN65Equalizer.SetPreset(presetIndex), cancellationToken);
+            return;
+        }
+
         await _connection.WriteAsync(QcyUuids.Equalizer, QcyCommands.SetEqualizerPreset(presetIndex), cancellationToken);
         await QueryAsync(0x22, cancellationToken);
     }
@@ -175,6 +247,11 @@ public sealed class QcyDeviceClient : IAsyncDisposable
     {
         await WriteAndConfirmAsync(0x22, QcyCommands.BuildCustomEqualizer(gains), cancellationToken);
     }
+
+    public Task SetN65EqualizerAsync(
+        IReadOnlyList<QcyEqualizerBand> bands,
+        CancellationToken cancellationToken = default) =>
+        WriteAndConfirmAsync(0x22, QcyN65Equalizer.BuildCustom(bands), cancellationToken);
 
     public async Task SetKeyFunctionsAsync(
         IReadOnlyDictionary<byte, byte> mappings,
@@ -201,7 +278,13 @@ public sealed class QcyDeviceClient : IAsyncDisposable
                 pending.TrySetCanceled();
             }
 
+            foreach (var pending in _pendingAcknowledgements.Values)
+            {
+                pending.TrySetCanceled();
+            }
+
             _pendingResponses.Clear();
+            _pendingAcknowledgements.Clear();
         }
 
         _commandLock.Dispose();
@@ -210,9 +293,9 @@ public sealed class QcyDeviceClient : IAsyncDisposable
 
     private async Task InitializeAsync(CancellationToken cancellationToken)
     {
-        RequireCharacteristic(QcyUuids.Command, canWrite: true);
-        RequireCharacteristic(QcyUuids.Notification, canNotify: true);
-        await _connection.SubscribeAsync(QcyUuids.Notification, cancellationToken);
+        RequireCharacteristic(_commandUuid, canWrite: true);
+        RequireCharacteristic(_notificationUuid, canNotify: true);
+        await _connection.SubscribeAsync(_notificationUuid, cancellationToken);
         if (_connection.Characteristics.Any(info => info.Uuid == QcyUuids.Battery && info.CanNotify))
         {
             await _connection.SubscribeAsync(QcyUuids.Battery, cancellationToken);
@@ -295,6 +378,19 @@ public sealed class QcyDeviceClient : IAsyncDisposable
 
     private async Task WriteAndConfirmAsync(byte opcode, byte[] packet, CancellationToken cancellationToken)
     {
+        if (_isJieli)
+        {
+            // The N65 acknowledges a write without echoing the value, so read it back.
+            if (await SendAndAwaitAsync(opcode, packet, cancellationToken, acceptAcknowledgement: true) is null ||
+                await QueryAsync(opcode, cancellationToken) is null)
+            {
+                throw new InvalidOperationException(
+                    $"The earbuds did not confirm command 0x{opcode:X2}; the change was not considered applied.");
+            }
+
+            return;
+        }
+
         var response = await SendAndAwaitAsync(opcode, packet, cancellationToken);
         if (response is null)
         {
@@ -304,31 +400,123 @@ public sealed class QcyDeviceClient : IAsyncDisposable
         if (response is null)
         {
             throw new InvalidOperationException(
-                $"The N70 did not confirm command 0x{opcode:X2}; the change was not considered applied.");
+                $"The earbuds did not confirm command 0x{opcode:X2}; the change was not considered applied.");
+        }
+    }
+
+    // LDAC and game mode restart the N65 link right after the acknowledgement, so it is the only
+    // confirmation available.
+    private async Task WriteBeforeRestartAsync(
+        byte opcode,
+        byte[] packet,
+        Func<QcyDeviceState, QcyDeviceState> update,
+        CancellationToken cancellationToken)
+    {
+        if (await SendAndAwaitAsync(opcode, packet, cancellationToken, acceptAcknowledgement: true) is null)
+        {
+            throw new InvalidOperationException(
+                $"The earbuds did not acknowledge command 0x{opcode:X2}; the change was not considered applied.");
+        }
+
+        UpdateState(update);
+    }
+
+    private async Task WriteNoiseModeAsync(QcyNoiseControlState expected, CancellationToken cancellationToken)
+    {
+        // The N65 acknowledges an ANC change at once but ignores it while the previous transition is still
+        // running, and the new mode is only pushed about a second later.
+        var packet = QcyCommands.SetNoiseMode(
+            expected.Mode,
+            expected.CancellationMode ?? QcyNoiseCancellationMode.Adaptive);
+        for (var attempt = 0; attempt < 2 && State.NoiseControl != expected; attempt++)
+        {
+            var wait = _lastNoiseChange + NoiseTransition - DateTimeOffset.UtcNow;
+            if (wait > TimeSpan.Zero)
+            {
+                await Task.Delay(wait, cancellationToken);
+            }
+
+            if (await SendAndAwaitAsync(0x17, packet, cancellationToken, acceptAcknowledgement: true) is null)
+            {
+                throw new InvalidOperationException("The earbuds did not acknowledge the noise control change.");
+            }
+
+            _lastNoiseChange = DateTimeOffset.UtcNow;
+            var deadline = _lastNoiseChange + ResponseTimeout;
+            while (State.NoiseControl != expected && DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(150, cancellationToken);
+            }
+        }
+
+        if (State.NoiseControl != expected)
+        {
+            await QueryAsync(0x17, cancellationToken);
+        }
+
+        var confirmed = State.NoiseControl;
+        if (confirmed != expected)
+        {
+            throw new InvalidOperationException(
+                $"The earbuds reported {FormatNoiseState(confirmed)}, but the app requested {FormatNoiseState(expected)}.");
         }
     }
 
     private async Task<byte[]?> SendAndAwaitAsync(
         byte expectedOpcode,
         byte[] packet,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool acceptAcknowledgement = false)
     {
         await _commandLock.WaitAsync(cancellationToken);
         TaskCompletionSource<byte[]> completion;
+        TaskCompletionSource<byte>? acknowledgement = null;
+        byte sequence = 0;
         try
         {
             completion = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
             lock (_stateLock)
             {
                 _pendingResponses[expectedOpcode] = completion;
+                if (_isJieli)
+                {
+                    sequence = _sequence++;
+                    acknowledgement = new TaskCompletionSource<byte>(TaskCreationOptions.RunContinuationsAsynchronously);
+                    _pendingAcknowledgements[sequence] = acknowledgement;
+                }
             }
 
-            Trace($"tx {Convert.ToHexString(packet)}");
-            await _connection.WriteAsync(QcyUuids.Command, packet, cancellationToken);
+            var data = _isJieli ? QcyJieliFrame.Wrap(sequence, packet) : packet;
+            Trace($"tx {Convert.ToHexString(data)}");
+            await _connection.WriteAsync(_commandUuid, data, cancellationToken);
 
             try
             {
-                return await completion.Task.WaitAsync(ResponseTimeout, cancellationToken);
+                if (acknowledgement is null)
+                {
+                    return await completion.Task.WaitAsync(ResponseTimeout, cancellationToken);
+                }
+
+                var first = await Task.WhenAny(completion.Task, acknowledgement.Task)
+                    .WaitAsync(ResponseTimeout, cancellationToken);
+                if (first == completion.Task)
+                {
+                    return await completion.Task;
+                }
+
+                var status = await acknowledgement.Task;
+                if (status != 0)
+                {
+                    throw new InvalidOperationException(
+                        $"The earbuds rejected command 0x{expectedOpcode:X2} (status 0x{status:X2}).");
+                }
+
+                if (acceptAcknowledgement)
+                {
+                    return completion.Task.IsCompletedSuccessfully ? completion.Task.Result : [];
+                }
+
+                return await completion.Task.WaitAsync(PushTimeout, cancellationToken);
             }
             catch (TimeoutException)
             {
@@ -340,6 +528,10 @@ public sealed class QcyDeviceClient : IAsyncDisposable
             lock (_stateLock)
             {
                 _pendingResponses.Remove(expectedOpcode);
+                if (acknowledgement is not null)
+                {
+                    _pendingAcknowledgements.Remove(sequence);
+                }
             }
 
             _commandLock.Release();
@@ -358,23 +550,57 @@ public sealed class QcyDeviceClient : IAsyncDisposable
             return;
         }
 
-        if (eventArgs.CharacteristicUuid != QcyUuids.Notification)
+        if (eventArgs.CharacteristicUuid != _notificationUuid)
         {
             return;
         }
 
         Trace($"rx {Convert.ToHexString(eventArgs.Value)}");
-        foreach (var command in QcyPacket.Parse(eventArgs.Value))
+        if (!_isJieli)
         {
-            ApplyCommand(command);
-            TaskCompletionSource<byte[]>? completion;
-            lock (_stateLock)
+            foreach (var command in QcyPacket.Parse(eventArgs.Value))
             {
-                _pendingResponses.TryGetValue(command.Opcode, out completion);
+                DispatchCommand(command);
             }
 
-            completion?.TrySetResult(command.Parameters);
+            return;
         }
+
+        foreach (var message in QcyJieliFrame.Parse(eventArgs.Value))
+        {
+            foreach (var command in message.Commands)
+            {
+                DispatchCommand(command);
+            }
+
+            if (message.IsResponse)
+            {
+                TaskCompletionSource<byte>? acknowledgement;
+                lock (_stateLock)
+                {
+                    _pendingAcknowledgements.TryGetValue(message.Sequence, out acknowledgement);
+                }
+
+                acknowledgement?.TrySetResult(message.Status ?? 0);
+            }
+        }
+    }
+
+    private void DispatchCommand(QcyCommand command)
+    {
+        if (_isJieli && N70OnlyOpcodes.Contains(command.Opcode))
+        {
+            return;
+        }
+
+        ApplyCommand(command);
+        TaskCompletionSource<byte[]>? completion;
+        lock (_stateLock)
+        {
+            _pendingResponses.TryGetValue(command.Opcode, out completion);
+        }
+
+        completion?.TrySetResult(command.Parameters);
     }
 
     private void Connection_Disconnected(object? sender, EventArgs eventArgs)
@@ -384,7 +610,12 @@ public sealed class QcyDeviceClient : IAsyncDisposable
         {
             foreach (var pending in _pendingResponses.Values)
             {
-                pending.TrySetException(new InvalidOperationException("The N70 disconnected during the command."));
+                pending.TrySetException(new InvalidOperationException("The earbuds disconnected during the command."));
+            }
+
+            foreach (var pending in _pendingAcknowledgements.Values)
+            {
+                pending.TrySetException(new InvalidOperationException("The earbuds disconnected during the command."));
             }
         }
     }
@@ -424,6 +655,15 @@ public sealed class QcyDeviceClient : IAsyncDisposable
                 break;
             case 0x09 when parameters.Length >= 1:
                 UpdateState(state => state with { GameModeEnabled = parameters[0] == 0x01 });
+                break;
+            case 0x4A when parameters.Length >= 1:
+                UpdateState(state => state with { GameModeEnabled = parameters[0] == 0x01 });
+                break;
+            case 0x27 when parameters.Length >= 1:
+                UpdateState(state => state with { DynamicEqualizerEnabled = parameters[0] == 0x01 });
+                break;
+            case 0x16 when parameters.Length >= 1:
+                UpdateState(state => state with { ChannelBalance = Math.Min(parameters[0], (byte)100) });
                 break;
             case 0x10 when parameters.Length >= 1:
                 UpdateState(state => state with { SleepModeEnabled = parameters[0] == 0x01 });
@@ -466,6 +706,7 @@ public sealed class QcyDeviceClient : IAsyncDisposable
                     {
                         EqualizerPreset = equalizer.PresetIndex,
                         EqualizerGains = equalizer.Bands.Select(band => band.Gain).ToArray(),
+                        Equalizer = equalizer,
                     });
                 }
                 break;

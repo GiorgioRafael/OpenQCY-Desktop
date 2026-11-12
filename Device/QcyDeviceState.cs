@@ -9,6 +9,12 @@ public enum QcyWearDetectionProtocol
     WearingDetection,
 }
 
+public enum QcyProtocolVariant
+{
+    Standard,
+    Jieli,
+}
+
 public sealed record QcyBatteryState(
     byte? Left,
     byte? Right,
@@ -21,6 +27,7 @@ public sealed record QcyDeviceState
 {
     public bool IsConnected { get; init; }
     public string DeviceName { get; init; } = "QCY device";
+    public QcyProtocolVariant ProtocolVariant { get; init; }
     public QcyBatteryState Battery { get; init; } = new(null, null, null);
     public string? FirmwareVersion { get; init; }
     public bool? WearDetectionEnabled { get; init; }
@@ -33,10 +40,13 @@ public sealed record QcyDeviceState
     public bool? LdacEnabled { get; init; }
     public bool? MultipointEnabled { get; init; }
     public bool? WindDetectionEnabled { get; init; }
+    public bool? DynamicEqualizerEnabled { get; init; }
+    public byte? ChannelBalance { get; init; }
     public byte? PromptVolume { get; init; }
     public byte PromptVolumeMaximum { get; init; } = 100;
     public ushort? AutoPowerOffMinutes { get; init; }
     public IReadOnlyDictionary<byte, byte> KeyFunctions { get; init; } = new Dictionary<byte, byte>();
     public byte? EqualizerPreset { get; init; }
     public IReadOnlyList<double> EqualizerGains { get; init; } = [];
+    public QcyEqualizerState? Equalizer { get; init; }
 }
