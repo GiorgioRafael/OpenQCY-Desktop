@@ -64,7 +64,7 @@
                         SelectedItem="{x:Bind ViewModel.SelectedNoiseMode, Mode=TwoWay}" />
                     <Border
                         x:Name="NoiseCancellationDetails"
-                        x:Load="{x:Bind ViewModel.IsNoiseCancellationSelected, Mode=OneWay}"
+                        x:Load="{x:Bind ViewModel.ShowCancellationModes, Mode=OneWay}"
                         Padding="10"
                         Background="#0CFFFFFF"
                         BorderBrush="#16FFFFFF"
@@ -86,7 +86,24 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Border Padding="10" Background="#0FFFFFFF" CornerRadius="16">
+                <Border Padding="10" Background="#0FFFFFFF" CornerRadius="16" Visibility="{x:Bind ViewModel.IsN65Model, Mode=OneWay}">
+                    <StackPanel Spacing="4">
+                        <Grid>
+                            <Border Width="28" Height="28" HorizontalAlignment="Left" Background="#1C55A8FF" CornerRadius="9">
+                                <FontIcon Glyph="&#xE9E9;" FontSize="14" Foreground="{StaticResource OpenQCYBlueBrush}" />
+                            </Border>
+                            <ToggleSwitch
+                                MinWidth="0"
+                                HorizontalAlignment="Right"
+                                AutomationProperties.Name="Dynamic EQ"
+                                OffContent=""
+                                OnContent=""
+                                IsOn="{x:Bind ViewModel.DynamicEqualizerEnabled, Mode=TwoWay}" />
+                        </Grid>
+                        <TextBlock FontSize="13" FontWeight="SemiBold" Text="Dynamic EQ" />
+                    </StackPanel>
+                </Border>
+                <Border Padding="10" Background="#0FFFFFFF" CornerRadius="16" Visibility="{x:Bind ViewModel.IsN70Model, Mode=OneWay}">
                     <StackPanel Spacing="4">
                         <Grid>
                             <Border Width="28" Height="28" HorizontalAlignment="Left" Background="#1C55A8FF" CornerRadius="9">

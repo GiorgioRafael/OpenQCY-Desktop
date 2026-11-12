@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:OpenQCY_Desktop.ViewModels"
     Background="Transparent"
     RequestedTheme="Dark"
     mc:Ignorable="d">
@@ -12,6 +13,7 @@
     <Page.Resources>
         <Style x:Key="NavigationButtonStyle" TargetType="Button">
             <Setter Property="Height" Value="46" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Padding" Value="14,0" />
             <Setter Property="CornerRadius" Value="12" />
@@ -22,6 +24,73 @@
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Foreground" Value="{StaticResource OpenQCYMutedBrush}" />
         </Style>
+        <!-- Drawn from scratch so the project ships no QCY assets. Left earbud; the right card mirrors it. -->
+        <DataTemplate x:Key="EarbudIllustrationTemplate">
+            <Viewbox Height="150">
+                <Canvas Width="181" Height="295">
+                    <Path Data="M116,4 C152,4 181,30 180,64 C179,96 166,118 149,132 L149,182 L72,180 C42,172 24,140 25,100 C26,60 44,30 70,14 C86,6 100,4 116,4 Z">
+                        <Path.Fill>
+                            <LinearGradientBrush StartPoint="0.2,0" EndPoint="0.9,1">
+                                <GradientStop Offset="0" Color="#FF6A6F76" />
+                                <GradientStop Offset="0.3" Color="#FF35393E" />
+                                <GradientStop Offset="0.7" Color="#FF1A1C1F" />
+                                <GradientStop Offset="1" Color="#FF2C3035" />
+                            </LinearGradientBrush>
+                        </Path.Fill>
+                    </Path>
+                    <Path Data="M64,20 C82,9 104,6 124,8" Stroke="#59FFFFFF" StrokeThickness="2" StrokeEndLineCap="Round" StrokeStartLineCap="Round" />
+                    <Path Data="M160,24 C174,38 178,58 175,78" Stroke="#40FFFFFF" StrokeThickness="3" StrokeEndLineCap="Round" StrokeStartLineCap="Round" />
+                    <Path Data="M30,80 C10,82 0,100 1,118 C2,140 14,158 30,168 C46,177 64,181 82,183 L82,118 C70,94 50,79 30,80 Z">
+                        <Path.Fill>
+                            <RadialGradientBrush Center="0.3,0.3" GradientOrigin="0.25,0.25" RadiusX="0.8" RadiusY="0.8">
+                                <GradientStop Offset="0" Color="#FF4E5359" />
+                                <GradientStop Offset="0.55" Color="#FF25282C" />
+                                <GradientStop Offset="1" Color="#FF0E0F11" />
+                            </RadialGradientBrush>
+                        </Path.Fill>
+                    </Path>
+                    <Path Data="M30,80 C10,82 0,100 1,118 C2,140 14,158 30,168" Stroke="#40FFFFFF" StrokeThickness="1.5" />
+                    <Path Data="M12,100 C16,90 24,85 32,85" Stroke="#59FFFFFF" StrokeThickness="2" StrokeEndLineCap="Round" StrokeStartLineCap="Round" />
+                    <Ellipse Canvas.Left="14" Canvas.Top="104" Width="26" Height="36" Fill="#30000000" Stroke="#1FFFFFFF" StrokeThickness="1" />
+                    <Ellipse Canvas.Left="164" Canvas.Top="92" Width="4" Height="4" Fill="#FF050607" Stroke="#30FFFFFF" StrokeThickness="0.5" />
+                    <Rectangle Canvas.Left="81" Canvas.Top="6" Width="68" Height="288" RadiusX="18" RadiusY="18">
+                        <Rectangle.Fill>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Offset="0" Color="#FF9AA0A7" />
+                                <GradientStop Offset="0.2" Color="#FFE3E6E9" />
+                                <GradientStop Offset="0.8" Color="#FFB4B9BF" />
+                                <GradientStop Offset="1" Color="#FF6B7179" />
+                            </LinearGradientBrush>
+                        </Rectangle.Fill>
+                    </Rectangle>
+                    <Rectangle Canvas.Left="84" Canvas.Top="10" Width="62" Height="280" RadiusX="15" RadiusY="15" Fill="#FF0D0F11" />
+                    <Rectangle Canvas.Left="87" Canvas.Top="14" Width="56" Height="272" RadiusX="12" RadiusY="12">
+                        <Rectangle.Fill>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Offset="0" Color="#FF4E555E" />
+                                <GradientStop Offset="0.18" Color="#FFB9BFC6" />
+                                <GradientStop Offset="0.32" Color="#FFE4E7EA" />
+                                <GradientStop Offset="0.55" Color="#FF9EA5AD" />
+                                <GradientStop Offset="0.85" Color="#FF6A717A" />
+                                <GradientStop Offset="1" Color="#FF3E444B" />
+                            </LinearGradientBrush>
+                        </Rectangle.Fill>
+                    </Rectangle>
+                    <Rectangle Canvas.Left="87" Canvas.Top="14" Width="56" Height="272" RadiusX="12" RadiusY="12">
+                        <Rectangle.Fill>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Offset="0" Color="#33FFFFFF" />
+                                <GradientStop Offset="0.25" Color="#00FFFFFF" />
+                                <GradientStop Offset="0.8" Color="#00000000" />
+                                <GradientStop Offset="1" Color="#40000000" />
+                            </LinearGradientBrush>
+                        </Rectangle.Fill>
+                    </Rectangle>
+                    <Rectangle Canvas.Left="100" Canvas.Top="34" Width="7" Height="232" RadiusX="3.5" RadiusY="3.5" Fill="#66FFFFFF" />
+                    <Rectangle Canvas.Left="131" Canvas.Top="40" Width="3" Height="220" RadiusX="1.5" RadiusY="1.5" Fill="#26FFFFFF" />
+                </Canvas>
+            </Viewbox>
+        </DataTemplate>
     </Page.Resources>
 
     <Grid>
@@ -75,7 +144,7 @@
                             <FontIcon Glyph="&#xE702;" FontSize="16" Foreground="{StaticResource OpenQCYAccentBrush}" />
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock FontSize="13" FontWeight="SemiBold" Text="MeloBuds N70" />
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Text="{x:Bind ViewModel.ModelLabel, Mode=OneWay}" />
                             <TextBlock Style="{StaticResource CaptionStyle}" Text="Local BLE control" />
                         </StackPanel>
                         <Ellipse Grid.Column="2" Width="8" Height="8" Fill="{StaticResource OpenQCYAccentStrongBrush}" />
@@ -131,7 +200,7 @@
                     <Grid>
                         <StackPanel>
                             <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Good to see you." />
-                            <TextBlock Margin="0,5,0,0" Foreground="{StaticResource OpenQCYMutedBrush}" Text="Your QCY MeloBuds N70, now controlled from your PC." />
+                            <TextBlock Margin="0,5,0,0" Foreground="{StaticResource OpenQCYMutedBrush}" Text="Your QCY MeloBuds, now controlled from your PC." />
                         </StackPanel>
                         <Button HorizontalAlignment="Right" VerticalAlignment="Center" Command="{x:Bind ViewModel.DiscoverDevicesCommand}" Style="{StaticResource RoundIconButtonStyle}" ToolTipService.ToolTip="Refresh status">
                             <FontIcon Glyph="&#xE72C;" FontSize="16" />
@@ -142,7 +211,7 @@
                         IsOpen="True"
                         IsClosable="False"
                         Severity="Informational"
-                        Title="Real N70 Bluetooth control"
+                        Title="Real Bluetooth control"
                         Message="{x:Bind ViewModel.DiscoveryStatus, Mode=OneWay}" />
 
                     <StackPanel Margin="4,-10,4,0" Orientation="Horizontal" Spacing="8">
@@ -219,7 +288,7 @@
                                         SelectedItem="{x:Bind ViewModel.SelectedNoiseMode, Mode=TwoWay}" />
                                     <Border
                                         x:Name="NoiseCancellationDetails"
-                                        x:Load="{x:Bind ViewModel.IsNoiseCancellationSelected, Mode=OneWay}"
+                                        x:Load="{x:Bind ViewModel.ShowCancellationModes, Mode=OneWay}"
                                         Padding="13,11"
                                         Background="#0CFFFFFF"
                                         BorderBrush="#16FFFFFF"
@@ -255,7 +324,22 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <Border Style="{StaticResource CompactGlassCardStyle}">
+                        <Border Style="{StaticResource CompactGlassCardStyle}" Visibility="{x:Bind ViewModel.IsN65Model, Mode=OneWay}">
+                            <StackPanel Spacing="16">
+                                <Grid>
+                                    <Border Width="38" Height="38" HorizontalAlignment="Left" Background="#1C55A8FF" CornerRadius="13">
+                                        <FontIcon Glyph="&#xE9E9;" FontSize="17" Foreground="{StaticResource OpenQCYBlueBrush}" />
+                                    </Border>
+                                    <ToggleSwitch HorizontalAlignment="Right" IsOn="{x:Bind ViewModel.DynamicEqualizerEnabled, Mode=TwoWay}" />
+                                </Grid>
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource CardTitleStyle}" Text="Dynamic EQ" />
+                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionStyle}" Text="Adjusts the curve to the volume. Works with presets, not with the custom curve." />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CompactGlassCardStyle}" Visibility="{x:Bind ViewModel.IsN70Model, Mode=OneWay}">
                             <StackPanel Spacing="16">
                                 <Grid>
                                     <Border Width="38" Height="38" HorizontalAlignment="Left" Background="#1C55A8FF" CornerRadius="13">
@@ -270,7 +354,22 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Grid.Column="1" Style="{StaticResource CompactGlassCardStyle}">
+                        <Border Grid.Column="1" Style="{StaticResource CompactGlassCardStyle}" Visibility="{x:Bind ViewModel.IsN65Model, Mode=OneWay}">
+                            <StackPanel Spacing="16">
+                                <Grid>
+                                    <Border Width="38" Height="38" HorizontalAlignment="Left" Background="#1C66D6A3" CornerRadius="13">
+                                        <FontIcon Glyph="&#xE8D6;" FontSize="17" Foreground="{StaticResource OpenQCYAccentBrush}" />
+                                    </Border>
+                                    <ToggleSwitch HorizontalAlignment="Right" IsOn="{x:Bind ViewModel.LdacEnabled, Mode=TwoWay}" />
+                                </Grid>
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource CardTitleStyle}" Text="LDAC" />
+                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionStyle}" Text="High-quality codec. Changing it restarts the earbuds' connection." />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="1" Style="{StaticResource CompactGlassCardStyle}" Visibility="{x:Bind ViewModel.IsN70Model, Mode=OneWay}">
                             <StackPanel Spacing="16">
                                 <Grid>
                                     <Border Width="38" Height="38" HorizontalAlignment="Left" Background="#1C66D6A3" CornerRadius="13">
@@ -295,7 +394,7 @@
                                 </Grid>
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource CardTitleStyle}" Text="Game mode" />
-                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionStyle}" Text="Prioritizes low latency for games and videos on your PC." />
+                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionStyle}" Text="Prioritizes low latency for games and videos on your PC." TextWrapping="Wrap" />
                                 </StackPanel>
                             </StackPanel>
                         </Border>
@@ -308,7 +407,7 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <StackPanel>
-                                <TextBlock Style="{StaticResource CardTitleStyle}" Text="Persistent N70 profile" />
+                                <TextBlock Style="{StaticResource CardTitleStyle}" Text="Persistent profile" />
                                 <TextBlock Margin="0,5,0,0" Style="{StaticResource CaptionStyle}" Text="OpenQCY will reapply these preferences when the earbuds connect to your PC." />
                                 <TextBlock Margin="0,10,0,0" FontSize="12" Foreground="{StaticResource OpenQCYAccentBrush}" Text="{x:Bind ViewModel.SaveStatus, Mode=OneWay}" TextWrapping="Wrap" />
                             </StackPanel>
@@ -333,13 +432,13 @@
                                     <TextBlock Style="{StaticResource CaptionStyle}" Text="{x:Bind ViewModel.EqualizerCapabilityStatus, Mode=OneWay}" />
                                 </StackPanel>
                                 <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="10">
-                                    <ComboBox Width="170" IsEnabled="{x:Bind ViewModel.EqualizerPresetsSupported, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.EqualizerPresets}" SelectedItem="{x:Bind ViewModel.SelectedEqualizerPreset, Mode=TwoWay}" />
+                                    <ComboBox Width="190" IsEnabled="{x:Bind ViewModel.EqualizerPresetsSupported, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.EqualizerPresets, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.SelectedEqualizerPreset, Mode=TwoWay}" />
                                     <Button Command="{x:Bind ViewModel.ResetEqualizerCommand}" Content="Reset" />
                                     <Button Command="{x:Bind ViewModel.ApplyEqualizerCommand}" IsEnabled="{x:Bind ViewModel.EqualizerSupported, Mode=OneWay}" Style="{StaticResource AccentButtonStyle}" Content="Apply" />
                                 </StackPanel>
                             </Grid>
 
-                            <Grid Height="245" ColumnSpacing="14">
+                            <Grid Height="245" ColumnSpacing="14" Visibility="{x:Bind ViewModel.IsN70Model, Mode=OneWay}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
@@ -355,6 +454,43 @@
                                 <StackPanel Grid.Column="8" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Minimum="-8" Maximum="8" StepFrequency="0.5" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand9, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="8k" /></StackPanel>
                                 <StackPanel Grid.Column="9" HorizontalAlignment="Center" Spacing="8"><Slider Height="190" Minimum="-8" Maximum="8" StepFrequency="0.5" Orientation="Vertical" Value="{x:Bind ViewModel.EqBand10, Mode=TwoWay}" /><TextBlock Style="{StaticResource CaptionStyle}" Text="16k" /></StackPanel>
                             </Grid>
+                            <StackPanel Spacing="14" Visibility="{x:Bind ViewModel.IsN65Model, Mode=OneWay}">
+                                <Grid ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ComboBox HorizontalAlignment="Stretch" Header="Saved curves" PlaceholderText="Load a saved curve" ItemsSource="{x:Bind ViewModel.SavedEqualizerCurves}" SelectedItem="{x:Bind ViewModel.SelectedSavedEqualizerCurve, Mode=TwoWay}" />
+                                    <TextBox Grid.Column="1" Header="Curve name" PlaceholderText="My curve" Text="{x:Bind ViewModel.EqualizerCurveName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <Button Grid.Column="2" VerticalAlignment="Bottom" Command="{x:Bind ViewModel.SaveEqualizerCurveCommand}" Style="{StaticResource AccentButtonStyle}" Content="Save curve" />
+                                    <Button Grid.Column="3" VerticalAlignment="Bottom" Command="{x:Bind ViewModel.DeleteEqualizerCurveCommand}" Content="Delete" />
+                                </Grid>
+                                <Grid ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <NumberBox Width="150" Header="Number of bands" Minimum="1" Maximum="10" SmallChange="1" SpinButtonPlacementMode="Inline" Value="{x:Bind ViewModel.CustomEqualizerBandCount, Mode=TwoWay}" />
+                                    <TextBlock Grid.Column="1" VerticalAlignment="Bottom" Margin="0,0,0,6" Style="{StaticResource CaptionStyle}" Text="Every change is sent to the earbuds. Saved curves stay on this PC." TextWrapping="Wrap" />
+                                    <Button Grid.Column="2" VerticalAlignment="Bottom" Command="{x:Bind ViewModel.EditSelectedPresetCommand}" Content="Edit selected preset" ToolTipService.ToolTip="Copy the selected preset into the custom curve" />
+                                </Grid>
+                                <Grid Padding="0,4,0,0" ColumnSpacing="14">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="60" /><ColumnDefinition Width="130" /><ColumnDefinition Width="*" /><ColumnDefinition Width="64" /><ColumnDefinition Width="110" /><ColumnDefinition Width="150" /></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="1" Style="{StaticResource CaptionStyle}" Text="Frequency (Hz)" />
+                                    <TextBlock Grid.Column="2" Style="{StaticResource CaptionStyle}" Text="Gain" />
+                                    <TextBlock Grid.Column="4" Style="{StaticResource CaptionStyle}" Text="Q" />
+                                    <TextBlock Grid.Column="5" Style="{StaticResource CaptionStyle}" Text="Filter" />
+                                </Grid>
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.CustomEqualizerBands}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:EqualizerBandViewModel">
+                                            <Grid Padding="0,4" ColumnSpacing="14">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="60" /><ColumnDefinition Width="130" /><ColumnDefinition Width="*" /><ColumnDefinition Width="64" /><ColumnDefinition Width="110" /><ColumnDefinition Width="150" /></Grid.ColumnDefinitions>
+                                                <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{x:Bind Title}" />
+                                                <NumberBox Grid.Column="1" Minimum="20" Maximum="20000" SmallChange="10" LargeChange="100" SpinButtonPlacementMode="Compact" Value="{x:Bind Frequency, Mode=TwoWay}" />
+                                                <Slider Grid.Column="2" VerticalAlignment="Center" Minimum="-15" Maximum="15" StepFrequency="0.1" Value="{x:Bind Gain, Mode=TwoWay}" />
+                                                <TextBlock Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Right" FontWeight="SemiBold" Text="{x:Bind GainDisplay, Mode=OneWay}" />
+                                                <NumberBox Grid.Column="4" Minimum="0.3" Maximum="20" SmallChange="0.1" LargeChange="1" SpinButtonPlacementMode="Compact" Value="{x:Bind Q, Mode=TwoWay}" />
+                                                <ComboBox Grid.Column="5" HorizontalAlignment="Stretch" ItemsSource="{x:Bind vm:EqualizerBandViewModel.FilterTypes}" SelectedItem="{x:Bind FilterType, Mode=TwoWay}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 
@@ -364,12 +500,21 @@
                             <Grid>
                                 <StackPanel MaxWidth="310" HorizontalAlignment="Left">
                                     <TextBlock Style="{StaticResource CardTitleStyle}" Text="LDAC" />
-                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionStyle}" Text="Prefer high quality when the profile is available." />
+                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionStyle}" Text="Prefer high quality when the profile is available. Changing it restarts the earbuds' connection." TextWrapping="Wrap" />
                                 </StackPanel>
                                 <ToggleSwitch HorizontalAlignment="Right" IsOn="{x:Bind ViewModel.LdacEnabled, Mode=TwoWay}" />
                             </Grid>
                         </Border>
-                        <Border Grid.Column="1" Style="{StaticResource CompactGlassCardStyle}">
+                        <Border Grid.Column="1" Style="{StaticResource CompactGlassCardStyle}" Visibility="{x:Bind ViewModel.IsN65Model, Mode=OneWay}">
+                            <Grid>
+                                <StackPanel MaxWidth="310" HorizontalAlignment="Left">
+                                    <TextBlock Style="{StaticResource CardTitleStyle}" Text="Dynamic EQ" />
+                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionStyle}" Text="Only available with a preset. Choosing another preset turns it off." TextWrapping="Wrap" />
+                                </StackPanel>
+                                <ToggleSwitch HorizontalAlignment="Right" IsOn="{x:Bind ViewModel.DynamicEqualizerEnabled, Mode=TwoWay}" />
+                            </Grid>
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource CompactGlassCardStyle}" Visibility="{x:Bind ViewModel.IsN70Model, Mode=OneWay}">
                             <Grid>
                                 <StackPanel MaxWidth="310" HorizontalAlignment="Left">
                                     <TextBlock Style="{StaticResource CardTitleStyle}" Text="Wind reduction" />
@@ -380,7 +525,19 @@
                         </Border>
                     </Grid>
 
-                    <Border Style="{StaticResource GlassCardStyle}">
+                    <Border Style="{StaticResource GlassCardStyle}" Visibility="{x:Bind ViewModel.IsN65Model, Mode=OneWay}">
+                        <Grid ColumnSpacing="24">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="240" /><ColumnDefinition Width="*" /><ColumnDefinition Width="80" /></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource CardTitleStyle}" Text="Channel balance" />
+                                <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionStyle}" Text="Shift the volume between the left and right earbud." />
+                            </StackPanel>
+                            <Slider Grid.Column="1" Minimum="0" Maximum="100" StepFrequency="1" Value="{x:Bind ViewModel.ChannelBalance, Mode=TwoWay}" />
+                            <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold" Text="{x:Bind ViewModel.ChannelBalanceDisplay, Mode=OneWay}" />
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource GlassCardStyle}" Visibility="{x:Bind ViewModel.IsN70Model, Mode=OneWay}">
                         <Grid ColumnSpacing="24">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="240" /><ColumnDefinition Width="*" /><ColumnDefinition Width="52" /></Grid.ColumnDefinitions>
                             <StackPanel>
@@ -395,54 +552,155 @@
             </ScrollViewer>
 
             <ScrollViewer x:Name="ControlsSection" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel MaxWidth="960" Padding="38,28,38,44" HorizontalAlignment="Stretch" Spacing="20">
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Controls" />
-                        <TextBlock Margin="0,5,0,0" Foreground="{StaticResource OpenQCYMutedBrush}" Text="Customize each gesture without relying on the mobile app." />
-                    </StackPanel>
-
-                    <Border Style="{StaticResource GlassCardStyle}">
-                        <StackPanel Spacing="8">
-                            <TextBlock Style="{StaticResource CardTitleStyle}" Text="Touch controls" />
-                            <TextBlock Margin="0,0,0,12" Style="{StaticResource CaptionStyle}" Text="Available when the earbuds' gesture channel is connected." />
-                            <Grid Padding="0,12" ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Double tap · left" /><ComboBox Grid.Column="1" IsEnabled="{x:Bind ViewModel.KeyFunctionsSupported, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.TouchActions}" SelectedItem="{x:Bind ViewModel.LeftDoubleTap, Mode=TwoWay}" /></Grid>
-                            <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
-                            <Grid Padding="0,12" ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Double tap · right" /><ComboBox Grid.Column="1" IsEnabled="{x:Bind ViewModel.KeyFunctionsSupported, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.TouchActions}" SelectedItem="{x:Bind ViewModel.RightDoubleTap, Mode=TwoWay}" /></Grid>
-                            <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
-                            <Grid Padding="0,12" ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Press and hold · left" /><ComboBox Grid.Column="1" IsEnabled="{x:Bind ViewModel.KeyFunctionsSupported, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.TouchActions}" SelectedItem="{x:Bind ViewModel.LeftLongPress, Mode=TwoWay}" /></Grid>
-                            <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
-                            <Grid Padding="0,12" ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Press and hold · right" /><ComboBox Grid.Column="1" IsEnabled="{x:Bind ViewModel.KeyFunctionsSupported, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.TouchActions}" SelectedItem="{x:Bind ViewModel.RightLongPress, Mode=TwoWay}" /></Grid>
+                <Grid>
+                    <StackPanel MaxWidth="960" Padding="38,28,38,44" HorizontalAlignment="Stretch" Spacing="20">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Controls" />
+                            <TextBlock Margin="0,5,0,0" Foreground="{StaticResource OpenQCYMutedBrush}" Text="Customize each gesture without relying on the mobile app." />
                         </StackPanel>
-                    </Border>
 
-                    <Grid ColumnSpacing="18">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                        <Border Style="{StaticResource CompactGlassCardStyle}">
-                            <Grid><StackPanel MaxWidth="300" HorizontalAlignment="Left"><TextBlock Style="{StaticResource CardTitleStyle}" Text="Wear detection" /><TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionStyle}" Text="Turn it off to prevent pauses when removing or reinserting either earbud." /></StackPanel><ToggleSwitch HorizontalAlignment="Right" IsOn="{x:Bind ViewModel.WearDetection, Mode=TwoWay}" /></Grid>
+                        <StackPanel Spacing="16" Visibility="{x:Bind ViewModel.IsN65Model, Mode=OneWay}">
+                            <Grid>
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource CardTitleStyle}" Text="Touch controls" />
+                                    <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionStyle}" Text="Choose an earbud, then a gesture. Each change is sent to the earbuds and confirmed." />
+                                </StackPanel>
+                                <Button HorizontalAlignment="Right" VerticalAlignment="Top" Command="{x:Bind ViewModel.RestoreFactoryGesturesCommand}" IsEnabled="{x:Bind ViewModel.KeyFunctionsSupported, Mode=OneWay}" Content="Restore factory gestures" />
+                            </Grid>
+
+                            <Grid ColumnSpacing="18">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Button
+                                Grid.Column="0"
+                                Height="236"
+                                Padding="0"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                VerticalContentAlignment="Stretch"
+                                AutomationProperties.Name="Left earbud gestures"
+                                Background="{StaticResource OpenQCYCardBrush}"
+                                BorderThickness="0"
+                                Command="{x:Bind ViewModel.SelectLeftEarbudCommand}"
+                                CornerRadius="24">
+                                <Grid>
+                                    <Border BorderBrush="{StaticResource OpenQCYStrokeBrush}" BorderThickness="1" CornerRadius="24" />
+                                    <Border BorderBrush="{StaticResource OpenQCYAccentStrongBrush}" BorderThickness="2" CornerRadius="24" Visibility="{x:Bind ViewModel.IsLeftEarbudSelected, Mode=OneWay}" />
+                                    <StackPanel Padding="18" VerticalAlignment="Center" Spacing="16">
+                                        <ContentControl HorizontalAlignment="Center" ContentTemplate="{StaticResource EarbudIllustrationTemplate}" IsTabStop="False" />
+                                        <Grid HorizontalAlignment="Center">
+                                            <Border Padding="22,8" Background="{StaticResource OpenQCYAccentStrongBrush}" CornerRadius="18" Visibility="{x:Bind ViewModel.IsLeftEarbudSelected, Mode=OneWay}">
+                                                <TextBlock FontWeight="SemiBold" Text="Left earbud" />
+                                            </Border>
+                                            <TextBlock Padding="22,8" Foreground="{StaticResource OpenQCYMutedBrush}" Text="Left earbud" Visibility="{x:Bind ViewModel.IsRightEarbudSelected, Mode=OneWay}" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Grid>
+                            </Button>
+                            <Button
+                                Grid.Column="1"
+                                Height="236"
+                                Padding="0"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                VerticalContentAlignment="Stretch"
+                                AutomationProperties.Name="Right earbud gestures"
+                                Background="{StaticResource OpenQCYCardBrush}"
+                                BorderThickness="0"
+                                Command="{x:Bind ViewModel.SelectRightEarbudCommand}"
+                                CornerRadius="24">
+                                <Grid>
+                                    <Border BorderBrush="{StaticResource OpenQCYStrokeBrush}" BorderThickness="1" CornerRadius="24" />
+                                    <Border BorderBrush="{StaticResource OpenQCYAccentStrongBrush}" BorderThickness="2" CornerRadius="24" Visibility="{x:Bind ViewModel.IsRightEarbudSelected, Mode=OneWay}" />
+                                    <StackPanel Padding="18" VerticalAlignment="Center" Spacing="16">
+                                        <ContentControl HorizontalAlignment="Center" ContentTemplate="{StaticResource EarbudIllustrationTemplate}" IsTabStop="False" RenderTransformOrigin="0.5,0.5">
+                                            <ContentControl.RenderTransform>
+                                                <ScaleTransform ScaleX="-1" />
+                                            </ContentControl.RenderTransform>
+                                        </ContentControl>
+                                        <Grid HorizontalAlignment="Center">
+                                            <Border Padding="22,8" Background="{StaticResource OpenQCYAccentStrongBrush}" CornerRadius="18" Visibility="{x:Bind ViewModel.IsRightEarbudSelected, Mode=OneWay}">
+                                                <TextBlock FontWeight="SemiBold" Text="Right earbud" />
+                                            </Border>
+                                            <TextBlock Padding="22,8" Foreground="{StaticResource OpenQCYMutedBrush}" Text="Right earbud" Visibility="{x:Bind ViewModel.IsLeftEarbudSelected, Mode=OneWay}" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Grid>
+                            </Button>
+                            </Grid>
+
+                            <Border Padding="8" Style="{StaticResource GlassCardStyle}">
+                                <ItemsControl IsEnabled="{x:Bind ViewModel.KeyFunctionsSupported, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.SelectedEarbudGestures, Mode=OneWay}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:GestureViewModel">
+                                            <Button
+                                                Padding="18,14"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Stretch"
+                                                AutomationProperties.Name="{x:Bind Name}"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Click="GestureButton_Click"
+                                                CornerRadius="16">
+                                                <Grid ColumnSpacing="12">
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                    <StackPanel Spacing="2">
+                                                        <TextBlock FontSize="15" Text="{x:Bind Title}" />
+                                                        <TextBlock Style="{StaticResource CaptionStyle}" Text="{x:Bind ActionDisplay, Mode=OneWay}" />
+                                                    </StackPanel>
+                                                    <FontIcon Grid.Column="1" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource OpenQCYMutedBrush}" Glyph="&#xE76C;" />
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                        </StackPanel>
+
+                        <Border Style="{StaticResource GlassCardStyle}" Visibility="{x:Bind ViewModel.IsN70Model, Mode=OneWay}">
+                            <StackPanel Spacing="8">
+                                <TextBlock Style="{StaticResource CardTitleStyle}" Text="Touch controls" />
+                                <TextBlock Margin="0,0,0,12" Style="{StaticResource CaptionStyle}" Text="Available when the earbuds' gesture channel is connected." />
+                                <Grid Padding="0,12" ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Double tap · left" /><ComboBox Grid.Column="1" IsEnabled="{x:Bind ViewModel.KeyFunctionsSupported, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.TouchActions}" SelectedItem="{x:Bind ViewModel.LeftDoubleTap, Mode=TwoWay}" /></Grid>
+                                <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
+                                <Grid Padding="0,12" ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Double tap · right" /><ComboBox Grid.Column="1" IsEnabled="{x:Bind ViewModel.KeyFunctionsSupported, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.TouchActions}" SelectedItem="{x:Bind ViewModel.RightDoubleTap, Mode=TwoWay}" /></Grid>
+                                <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
+                                <Grid Padding="0,12" ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Press and hold · left" /><ComboBox Grid.Column="1" IsEnabled="{x:Bind ViewModel.KeyFunctionsSupported, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.TouchActions}" SelectedItem="{x:Bind ViewModel.LeftLongPress, Mode=TwoWay}" /></Grid>
+                                <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
+                                <Grid Padding="0,12" ColumnSpacing="20"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions><TextBlock VerticalAlignment="Center" Text="Press and hold · right" /><ComboBox Grid.Column="1" IsEnabled="{x:Bind ViewModel.KeyFunctionsSupported, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.TouchActions}" SelectedItem="{x:Bind ViewModel.RightLongPress, Mode=TwoWay}" /></Grid>
+                            </StackPanel>
                         </Border>
-                        <Border Grid.Column="1" Style="{StaticResource CompactGlassCardStyle}">
-                            <Grid><StackPanel MaxWidth="300" HorizontalAlignment="Left"><TextBlock Style="{StaticResource CardTitleStyle}" Text="Sleep mode" /><TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionStyle}" Text="Blocks accidental gestures while enabled." /></StackPanel><ToggleSwitch HorizontalAlignment="Right" IsOn="{x:Bind ViewModel.SleepModeEnabled, Mode=TwoWay}" /></Grid>
-                        </Border>
-                    </Grid>
-                </StackPanel>
+
+                        <Grid ColumnSpacing="18" Visibility="{x:Bind ViewModel.IsN70Model, Mode=OneWay}">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource CompactGlassCardStyle}">
+                                <Grid><StackPanel MaxWidth="300" HorizontalAlignment="Left"><TextBlock Style="{StaticResource CardTitleStyle}" Text="Wear detection" /><TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionStyle}" Text="Turn it off to prevent pauses when removing or reinserting either earbud." /></StackPanel><ToggleSwitch HorizontalAlignment="Right" IsOn="{x:Bind ViewModel.WearDetection, Mode=TwoWay}" /></Grid>
+                            </Border>
+                            <Border Grid.Column="1" Style="{StaticResource CompactGlassCardStyle}">
+                                <Grid><StackPanel MaxWidth="300" HorizontalAlignment="Left"><TextBlock Style="{StaticResource CardTitleStyle}" Text="Sleep mode" /><TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionStyle}" Text="Blocks accidental gestures while enabled." /></StackPanel><ToggleSwitch HorizontalAlignment="Right" IsOn="{x:Bind ViewModel.SleepModeEnabled, Mode=TwoWay}" /></Grid>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </Grid>
             </ScrollViewer>
 
             <ScrollViewer x:Name="ConnectionSection" Visibility="Collapsed" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel MaxWidth="960" Padding="38,28,38,44" HorizontalAlignment="Stretch" Spacing="20">
-                    <StackPanel><TextBlock Style="{StaticResource SectionTitleStyle}" Text="Connection" /><TextBlock Margin="0,5,0,0" Foreground="{StaticResource OpenQCYMutedBrush}" Text="Manage how the N70 behaves between your PC and phone." /></StackPanel>
+                    <StackPanel><TextBlock Style="{StaticResource SectionTitleStyle}" Text="Connection" /><TextBlock Margin="0,5,0,0" Foreground="{StaticResource OpenQCYMutedBrush}" Text="Manage how the earbuds behave between your PC and phone." /></StackPanel>
                     <Border Style="{StaticResource GlassCardStyle}">
                         <StackPanel Spacing="16">
-                            <Grid><StackPanel><TextBlock Style="{StaticResource CardTitleStyle}" Text="Multipoint" /><TextBlock Style="{StaticResource CaptionStyle}" Text="Connect to two devices at the same time." /></StackPanel><ToggleSwitch HorizontalAlignment="Right" IsOn="{x:Bind ViewModel.MultipointEnabled, Mode=TwoWay}" /></Grid>
+                            <StackPanel Spacing="16" Visibility="{x:Bind ViewModel.IsN70Model, Mode=OneWay}">
+                                <Grid><StackPanel><TextBlock Style="{StaticResource CardTitleStyle}" Text="Multipoint" /><TextBlock Style="{StaticResource CaptionStyle}" Text="Connect to two devices at the same time." /></StackPanel><ToggleSwitch HorizontalAlignment="Right" IsOn="{x:Bind ViewModel.MultipointEnabled, Mode=TwoWay}" /></Grid>
+                                <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
+                            </StackPanel>
+                            <Grid><StackPanel><TextBlock Style="{StaticResource CardTitleStyle}" Text="Reapply automatically" /><TextBlock Style="{StaticResource CaptionStyle}" Text="Restores your profile whenever the earbuds appear in Windows." /></StackPanel><ToggleSwitch HorizontalAlignment="Right" IsOn="{x:Bind ViewModel.AutoApplyEnabled, Mode=TwoWay}" /></Grid>
                             <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
-                            <Grid><StackPanel><TextBlock Style="{StaticResource CardTitleStyle}" Text="Reapply automatically" /><TextBlock Style="{StaticResource CaptionStyle}" Text="Restores your profile whenever the N70 appears in Windows." /></StackPanel><ToggleSwitch HorizontalAlignment="Right" IsOn="{x:Bind ViewModel.AutoApplyEnabled, Mode=TwoWay}" /></Grid>
-                            <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
-                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="190" /></Grid.ColumnDefinitions><StackPanel><TextBlock Style="{StaticResource CardTitleStyle}" Text="Automatic power off" /><TextBlock Style="{StaticResource CaptionStyle}" Text="Timeout configured in the earbuds' power manager." /></StackPanel><ComboBox Grid.Column="1" ItemsSource="{x:Bind ViewModel.DisconnectTimeouts}" SelectedItem="{x:Bind ViewModel.DisconnectTimeout, Mode=TwoWay}" /></Grid>
-                            <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" />
-                            <Grid><StackPanel><TextBlock Style="{StaticResource CardTitleStyle}" Text="Control channel" /><TextBlock Style="{StaticResource CaptionStyle}" Text="BLE scanning, A001 service, and QCY notifications." /></StackPanel><StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8"><Button Command="{x:Bind ViewModel.DiscoverDevicesCommand}" Content="Connect / refresh" /><Button Command="{x:Bind ViewModel.DisconnectDeviceCommand}" Content="Disconnect" /></StackPanel></Grid>
+                            <Grid Visibility="{x:Bind ViewModel.IsN70Model, Mode=OneWay}"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="190" /></Grid.ColumnDefinitions><StackPanel><TextBlock Style="{StaticResource CardTitleStyle}" Text="Automatic power off" /><TextBlock Style="{StaticResource CaptionStyle}" Text="Timeout configured in the earbuds' power manager." /></StackPanel><ComboBox Grid.Column="1" ItemsSource="{x:Bind ViewModel.DisconnectTimeouts}" SelectedItem="{x:Bind ViewModel.DisconnectTimeout, Mode=TwoWay}" /></Grid>
+                            <Border Height="1" Background="{StaticResource OpenQCYStrokeBrush}" Visibility="{x:Bind ViewModel.IsN70Model, Mode=OneWay}" />
+                            <Grid><StackPanel><TextBlock Style="{StaticResource CardTitleStyle}" Text="Control channel" /><TextBlock Style="{StaticResource CaptionStyle}" Text="BLE scanning, QCY service A001 (N70) or A002 (N65), and notifications." /></StackPanel><StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8"><Button Command="{x:Bind ViewModel.DiscoverDevicesCommand}" Content="Connect / refresh" /><Button Command="{x:Bind ViewModel.DisconnectDeviceCommand}" Content="Disconnect" /></StackPanel></Grid>
                         </StackPanel>
                     </Border>
 
-                    <Border Style="{StaticResource GlassCardStyle}">
+                    <Border Style="{StaticResource GlassCardStyle}" Visibility="{x:Bind ViewModel.IsN70Model, Mode=OneWay}">
                         <Grid ColumnSpacing="18">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                             <StackPanel><TextBlock Style="{StaticResource CardTitleStyle}" Text="Find my earbuds" /><TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionStyle}" Text="Plays a sound in each earbud once the protocol is validated. Do not use while wearing them." /></StackPanel>
@@ -469,6 +727,46 @@
                     </Border>
                 </StackPanel>
             </ScrollViewer>
+
+            <Grid x:Name="GestureSheet" Visibility="Collapsed">
+                <Border x:Name="GestureSheetBackdrop" Background="#99000000" Opacity="0" Tapped="GestureSheetBackdrop_Tapped" />
+                <Border
+                    x:Name="GestureSheetPanel"
+                    MaxWidth="960"
+                    Margin="38,0"
+                    VerticalAlignment="Bottom"
+                    Background="{StaticResource OpenQCYBackgroundBrush}"
+                    BorderBrush="{StaticResource OpenQCYStrokeBrush}"
+                    BorderThickness="1,1,1,0"
+                    CornerRadius="24,24,0,0">
+                    <Border.RenderTransform>
+                        <TranslateTransform x:Name="GestureSheetOffset" />
+                    </Border.RenderTransform>
+                    <Grid Padding="10,8,10,18" Background="{StaticResource OpenQCYCardBrush}" CornerRadius="24,24,0,0">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <Grid Height="60">
+                            <Button
+                                Width="44"
+                                Height="44"
+                                Padding="0"
+                                AutomationProperties.Name="Back"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Click="GestureSheetBack_Click"
+                                CornerRadius="22">
+                                <Button.KeyboardAccelerators>
+                                    <KeyboardAccelerator Key="Escape" />
+                                </Button.KeyboardAccelerators>
+                                <FontIcon FontSize="16" Glyph="&#xE76B;" />
+                            </Button>
+                            <TextBlock x:Name="GestureSheetTitle" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource CardTitleStyle}" FontSize="18" />
+                        </Grid>
+                        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                            <StackPanel x:Name="GestureSheetOptions" Padding="8,0" />
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
     </Grid>
 </Page>

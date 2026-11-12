@@ -16,7 +16,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TitleBar x:Name="AppTitleBar" Title="OpenQCY Desktop" Subtitle="QCY MeloBuds N70">
+        <TitleBar x:Name="AppTitleBar" Title="OpenQCY Desktop" Subtitle="QCY MeloBuds">
             <TitleBar.IconSource>
                 <ImageIconSource ImageSource="Assets/AppIcon-v2.png" />
             </TitleBar.IconSource>

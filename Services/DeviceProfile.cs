@@ -23,4 +23,24 @@ public sealed class DeviceProfile
     public string LeftLongPress { get; set; } = "Noise control";
     public string RightLongPress { get; set; } = "Voice assistant";
     public string DisconnectTimeout { get; set; } = "Never";
+    public bool IsN65Model { get; set; }
+    public bool DynamicEqualizerEnabled { get; set; }
+    public double ChannelBalance { get; set; } = 50;
+    public List<SavedEqualizerBand> N65CustomBands { get; set; } = [];
+    public List<SavedEqualizerCurve> N65EqualizerCurves { get; set; } = [];
+    public Dictionary<string, string> N65Gestures { get; set; } = [];
+}
+
+public sealed class SavedEqualizerCurve
+{
+    public string Name { get; set; } = "";
+    public List<SavedEqualizerBand> Bands { get; set; } = [];
+}
+
+public sealed class SavedEqualizerBand
+{
+    public ushort Frequency { get; set; }
+    public double Gain { get; set; }
+    public double Q { get; set; }
+    public byte Type { get; set; }
 }
