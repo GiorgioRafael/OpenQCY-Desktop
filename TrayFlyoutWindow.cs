@@ -13,6 +13,7 @@ public sealed class TrayFlyoutWindow : Window
     private const int DwmwaBorderColor = 34;
     private const int WindowWidth = 400;
     private const int WindowHeight = 500;
+    private const int ContentCornerRadius = 22;
     private const int GwlStyle = -16;
     private const long WsCaption = 0x00C00000L;
     private const long WsThickFrame = 0x00040000L;
@@ -73,6 +74,7 @@ public sealed class TrayFlyoutWindow : Window
 
         _hasBeenActivated = false;
         _isVisible = true;
+        ApplyRoundedRegion();
         AppWindow.Show();
         Activate();
         _lightDismissTimer.Start();
@@ -164,6 +166,32 @@ public sealed class TrayFlyoutWindow : Window
         _ = DwmSetWindowAttribute(_windowHandle, DwmwaWindowCornerPreference, ref cornerPreference, sizeof(int));
         _ = DwmSetWindowAttribute(_windowHandle, DwmwaBorderColor, ref noBorderColor, sizeof(int));
     }
+
+    // Windows 11 does not round popup windows, so the area outside the rounded content showed up black.
+    // Clip the window itself to the content's corner radius, scaled to the monitor DPI.
+    private void ApplyRoundedRegion()
+    {
+        var size = AppWindow.Size;
+        var diameter = (int)Math.Round(ContentCornerRadius * 2 * GetDpiForWindow(_windowHandle) / 96d);
+        var region = CreateRoundRectRgn(0, 0, size.Width + 1, size.Height + 1, diameter, diameter);
+        if (region != 0 && SetWindowRgn(_windowHandle, region, true) == 0)
+        {
+            _ = DeleteObject(region);
+        }
+    }
+
+    [DllImport("gdi32.dll")]
+    private static extern nint CreateRoundRectRgn(int left, int top, int right, int bottom, int widthEllipse, int heightEllipse);
+
+    [DllImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool DeleteObject(nint handle);
+
+    [DllImport("user32.dll")]
+    private static extern int SetWindowRgn(nint windowHandle, nint region, [MarshalAs(UnmanagedType.Bool)] bool redraw);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(nint windowHandle);
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(
