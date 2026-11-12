@@ -11,5 +11,7 @@
     <Compile Include="QcyCommands.cs" />
     <Compile Include="QcyPacket.cs" />
     <Compile Include="QcyUuids.cs" />
+    <Compile Include="QcyJieliFrame.cs" />
+    <Compile Include="QcyN65Equalizer.cs" />
   </ItemGroup>
 </Project>

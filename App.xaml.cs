@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml;
+using Microsoft.Windows.AppLifecycle;
 using OpenQCY_Desktop.Services;
 using OpenQCY_Desktop.ViewModels;
 
@@ -21,8 +22,25 @@ public partial class App : Application
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
         var isStartupLaunch = WindowsStartupService.IsStartupLaunch(Environment.GetCommandLineArgs());
+
+        // Only one instance may own the earbuds' BLE control channel: while connected, the earbuds stop
+        // advertising, so a second instance could never find them. Forward the launch to the running one.
+        var mainInstance = AppInstance.FindOrRegisterForKey("OpenQCY.Desktop.Main");
+        if (!mainInstance.IsCurrent)
+        {
+            if (!isStartupLaunch)
+            {
+                var activation = AppInstance.GetCurrent().GetActivatedEventArgs();
+                Task.Run(() => mainInstance.RedirectActivationToAsync(activation).AsTask()).Wait();
+            }
+
+            Environment.Exit(0);
+            return;
+        }
+
         Window = new MainWindow();
         DispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
+        mainInstance.Activated += (_, _) => DispatcherQueue.TryEnqueue(ShowMainWindow);
 
         if (isStartupLaunch && Window is MainWindow mainWindow)
         {

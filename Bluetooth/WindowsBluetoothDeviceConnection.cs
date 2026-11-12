@@ -29,6 +29,7 @@ internal sealed class WindowsBluetoothDeviceConnection : IBluetoothDeviceConnect
 
     public string Name => string.IsNullOrWhiteSpace(_device.Name) ? "QCY device" : _device.Name;
     public ulong BluetoothAddress => _device.BluetoothAddress;
+    public Guid ServiceUuid => _service.Uuid;
     public bool IsConnected => _device.ConnectionStatus == BluetoothConnectionStatus.Connected;
 
     public IReadOnlyCollection<GattCharacteristicInfo> Characteristics => _characteristics.Values
@@ -157,7 +158,7 @@ internal sealed class WindowsBluetoothDeviceConnection : IBluetoothDeviceConnect
         ObjectDisposedException.ThrowIf(_disposed, this);
         return _characteristics.TryGetValue(uuid, out var characteristic)
             ? characteristic
-            : throw new NotSupportedException($"The N70 did not expose characteristic {uuid:D}.");
+            : throw new NotSupportedException($"The earbuds did not expose characteristic {uuid:D}.");
     }
 
     private void Characteristic_ValueChanged(GattCharacteristic sender, WindowsGattValueChangedEventArgs args)

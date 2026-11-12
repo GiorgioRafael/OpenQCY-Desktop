@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OpenQCY_Desktop.Bluetooth;
@@ -9,7 +10,7 @@ namespace OpenQCY_Desktop.ViewModels;
 
 public partial class MainPageViewModel : ObservableObject
 {
-    private static readonly IReadOnlyDictionary<string, byte> EqualizerPresetIds =
+    private static readonly IReadOnlyDictionary<string, byte> N70EqualizerPresetIds =
         new Dictionary<string, byte>(StringComparer.Ordinal)
         {
             ["Spatial audio"] = 0,
@@ -21,6 +22,9 @@ public partial class MainPageViewModel : ObservableObject
             ["Soft"] = 6,
             ["Classical"] = 7,
         };
+
+    private static readonly IReadOnlyDictionary<string, byte> N65EqualizerPresetIds =
+        QcyN65Equalizer.Presets.ToDictionary(preset => preset.Name, preset => preset.Id, StringComparer.Ordinal);
 
     private static readonly IReadOnlyDictionary<string, byte> TouchActionIds =
         new Dictionary<string, byte>(StringComparer.Ordinal)
@@ -51,7 +55,11 @@ public partial class MainPageViewModel : ObservableObject
     private readonly IBluetoothTransport _bluetoothTransport = new WindowsBluetoothTransport();
     private IBluetoothDeviceConnection? _connection;
     private QcyDeviceClient? _deviceClient;
+    private IReadOnlyDictionary<string, byte> _equalizerPresetIds = N70EqualizerPresetIds;
     private CancellationTokenSource? _promptVolumeDebounce;
+    private CancellationTokenSource? _channelBalanceDebounce;
+    private CancellationTokenSource? _customEqualizerDebounce;
+    private List<SavedEqualizerCurve> _savedEqualizerCurves = [];
     private CancellationTokenSource? _noiseControlCancellation;
     private Microsoft.UI.Dispatching.DispatcherQueueTimer? _batteryRefreshTimer;
     private QcyNoiseControlState? _pendingNoiseControl;
@@ -68,13 +76,18 @@ public partial class MainPageViewModel : ObservableObject
 
     public MainPageViewModel()
     {
+        foreach (var gesture in N65Gestures)
+        {
+            gesture.Changed += N65Gesture_Changed;
+        }
+
+        LoadCustomEqualizerBands(QcyN65Equalizer.FactoryTuning.Bands);
         LoadProfile();
         LoadStartupSetting();
     }
 
     public IReadOnlyList<string> NoiseModes { get; } = ["Noise cancellation", "Transparency", "Normal"];
     public IReadOnlyList<string> NoiseCancellationModes { get; } = [.. NoiseCancellationModeIds.Keys];
-    public IReadOnlyList<string> EqualizerPresets { get; } = [.. EqualizerPresetIds.Keys, "Custom"];
     public IReadOnlyList<string> TouchActions { get; } = [.. TouchActionIds.Keys];
     public IReadOnlyList<string> DisconnectTimeouts { get; } = ["Never", "5 minutes", "15 minutes", "30 minutes", "1 hour"];
 
@@ -85,6 +98,9 @@ public partial class MainPageViewModel : ObservableObject
     public partial string SelectedNoiseCancellationMode { get; set; } = "Adaptive";
 
     public bool IsNoiseCancellationSelected => SelectedNoiseMode == "Noise cancellation";
+
+    [ObservableProperty]
+    public partial IReadOnlyList<string> EqualizerPresets { get; set; } = [.. N70EqualizerPresetIds.Keys, "Custom"];
 
     [ObservableProperty]
     public partial string SelectedEqualizerPreset { get; set; } = "Default";
@@ -100,6 +116,9 @@ public partial class MainPageViewModel : ObservableObject
 
     [ObservableProperty]
     public partial bool GameModeEnabled { get; set; }
+
+    [ObservableProperty]
+    public partial bool DynamicEqualizerEnabled { get; set; }
 
     [ObservableProperty]
     public partial bool WindReductionEnabled { get; set; } = true;
@@ -120,6 +139,16 @@ public partial class MainPageViewModel : ObservableObject
     public partial double PromptVolume { get; set; } = 64;
 
     public string PromptVolumeDisplay => $"{PromptVolume:F0}%";
+
+    [ObservableProperty]
+    public partial double ChannelBalance { get; set; } = 50;
+
+    public string ChannelBalanceDisplay => Math.Round(ChannelBalance) switch
+    {
+        50 => "Centered",
+        < 50 => $"L {100 - Math.Round(ChannelBalance):F0}",
+        _ => $"R {Math.Round(ChannelBalance):F0}",
+    };
 
     [ObservableProperty]
     public partial double EqBand1 { get; set; }
@@ -151,6 +180,48 @@ public partial class MainPageViewModel : ObservableObject
     [ObservableProperty]
     public partial double EqBand10 { get; set; }
 
+    public ObservableCollection<EqualizerBandViewModel> CustomEqualizerBands { get; } = [];
+
+    public ObservableCollection<string> SavedEqualizerCurves { get; } = [];
+
+    public IReadOnlyList<string> FilterTypes => EqualizerBandViewModel.FilterTypes;
+
+    // Factory functions come from the first capture, before any gesture was changed.
+    public IReadOnlyList<GestureViewModel> N65Gestures { get; } =
+    [
+        new("Single tap", true, 0x01, 0x06),
+        new("Single tap", false, 0x02, 0x05),
+        new("Double tap", true, 0x03, 0x01),
+        new("Double tap", false, 0x04, 0x03),
+        new("Triple tap", true, 0x05, 0x02),
+        new("Triple tap", false, 0x06, 0x0B),
+        new("Press and hold", true, 0x09, 0x04),
+        new("Press and hold", false, 0x0A, 0x04),
+    ];
+
+    [ObservableProperty]
+    public partial bool IsLeftEarbudSelected { get; set; } = true;
+
+    public bool IsRightEarbudSelected => !IsLeftEarbudSelected;
+
+    public IReadOnlyList<GestureViewModel> SelectedEarbudGestures =>
+        N65Gestures.Where(gesture => gesture.IsLeft == IsLeftEarbudSelected).ToArray();
+
+    [ObservableProperty]
+    public partial double CustomEqualizerBandCount { get; set; }
+
+    [ObservableProperty]
+    public partial string? SelectedSavedEqualizerCurve { get; set; }
+
+    [ObservableProperty]
+    public partial string EqualizerCurveName { get; set; } = "";
+
+
+
+
+
+
+
     [ObservableProperty]
     public partial string LeftDoubleTap { get; set; } = "Play / pause";
 
@@ -173,7 +244,7 @@ public partial class MainPageViewModel : ObservableObject
     public partial string DiscoveryStatus { get; set; } = "Ready to find the QCY control channel";
 
     [ObservableProperty]
-    public partial string DeviceName { get; set; } = "QCY MeloBuds N70";
+    public partial string DeviceName { get; set; } = "QCY MeloBuds";
 
     [ObservableProperty]
     public partial string ConnectionStatus { get; set; } = "Control disconnected";
@@ -191,7 +262,7 @@ public partial class MainPageViewModel : ObservableObject
     public partial string CaseBatteryDisplay { get; set; } = "—";
 
     [ObservableProperty]
-    public partial string BatteryStatus { get; set; } = "Looking for a recent N70 battery reading";
+    public partial string BatteryStatus { get; set; } = "Looking for a recent battery reading";
 
     [ObservableProperty]
     public partial double LeftBattery { get; set; }
@@ -222,6 +293,15 @@ public partial class MainPageViewModel : ObservableObject
 
     [ObservableProperty]
     public partial bool KeyFunctionsSupported { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsN65Model { get; set; }
+
+    public bool IsN70Model => !IsN65Model;
+
+    public string ModelLabel => IsN65Model ? "MeloBuds N65" : "MeloBuds N70";
+
+    public bool ShowCancellationModes => IsNoiseCancellationSelected && !IsN65Model;
 
     public async Task StartAsync()
     {
@@ -267,11 +347,11 @@ public partial class MainPageViewModel : ObservableObject
                     : "Last overall estimate stored by Windows";
             }
 
-            DiscoveryStatus = "Looking for the N70 already known to Windows…";
+            DiscoveryStatus = "Looking for the earbuds already known to Windows…";
             ConnectionStatus = "Looking for the saved control channel";
 
             var knownDevices = (await _bluetoothTransport.FindPairedQcyDevicesAsync())
-                .Where(device => QcyUuids.IsN70(device.VendorId))
+                .Where(device => QcyUuids.IsSupported(device.VendorId))
                 .ToList();
             var rememberedDevice = CreateRememberedDevice(desiredProfile);
             if (rememberedDevice is not null)
@@ -282,21 +362,26 @@ public partial class MainPageViewModel : ObservableObject
             var target = await ConnectFirstAvailableAsync(knownDevices);
             if (target is null)
             {
-                DiscoveryStatus = "The N70 was not cached; scanning for BLE advertisements…";
+                DiscoveryStatus = "The earbuds were not cached; scanning for BLE advertisements…";
                 ConnectionStatus = "Looking for the control channel advertisement";
                 var advertisedDevices = await _bluetoothTransport.ScanForQcyDevicesAsync(TimeSpan.FromSeconds(8));
-                var advertisedN70 = advertisedDevices
-                    .Where(device => QcyUuids.IsN70(device.VendorId))
+                var advertisedSupported = advertisedDevices
+                    .Where(device => QcyUuids.IsSupported(device.VendorId))
                     .ToArray();
-                target = await ConnectFirstAvailableAsync(advertisedN70);
+                target = await ConnectFirstAvailableAsync(advertisedSupported);
                 if (target is null)
                 {
                     throw new InvalidOperationException(
-                        "The N70 was not found in the Windows cache and did not advertise its control channel. Open the case or remove an earbud and try again.");
+                        "The earbuds were not found in the Windows cache and did not advertise their control channel. Open the case or remove an earbud and try again.");
                 }
             }
 
             DeviceName = target.Name;
+            var isFirstConnection = desiredProfile.KnownBluetoothAddress is null &&
+                desiredProfile.KnownControlAddress is null &&
+                desiredProfile.KnownOtherAddress is null;
+            var modelChanged = _deviceClient!.IsJieli != desiredProfile.IsN65Model;
+            SetModel(_deviceClient.IsJieli);
             RememberDevice(target);
             if (target.SignalStrength != short.MinValue)
             {
@@ -305,14 +390,17 @@ public partial class MainPageViewModel : ObservableObject
                 RightBattery = target.RightBattery;
                 CaseBattery = target.CaseBattery;
                 UpdateBatteryDisplays();
-                BatteryStatus = "Battery detected from the N70 advertisement";
+                BatteryStatus = "Battery detected from the earbuds' advertisement";
             }
 
             ApplyDeviceState(_deviceClient!.State);
 
-            if (desiredProfile.AutoApplyEnabled)
+            // On the first connection, or with a different model, keep the earbuds' settings instead of
+            // overwriting them with the defaults.
+            var shouldReapply = desiredProfile.AutoApplyEnabled && !isFirstConnection && !modelChanged;
+            if (shouldReapply)
             {
-                SaveStatus = "Reapplying the saved profile to the N70…";
+                SaveStatus = "Reapplying the saved profile to the earbuds…";
                 await ApplyProfileToDeviceAsync(desiredProfile);
             }
 
@@ -320,9 +408,9 @@ public partial class MainPageViewModel : ObservableObject
             DiscoveryStatus = "QCY control channel connected and validated";
             BatteryStatus = "Updates automatically while the control channel is connected";
             Save();
-            SaveStatus = desiredProfile.AutoApplyEnabled
-                ? "Profile confirmed by the N70"
-                : "Current N70 state loaded";
+            SaveStatus = shouldReapply
+                ? "Profile confirmed by the earbuds"
+                : "Current earbud state loaded";
         }
         catch (Exception exception)
         {
@@ -333,7 +421,7 @@ public partial class MainPageViewModel : ObservableObject
             BatteryStatus = windowsBattery is not null
                 ? "Overall Windows estimate; open the case to read each earbud and the case"
                 : HasBatteryReading
-                ? "Showing the last reading received from the N70"
+                ? "Showing the last reading received from the earbuds"
                 : "No reading — open the case or remove an earbud to advertise the battery";
         }
         finally
@@ -354,13 +442,13 @@ public partial class MainPageViewModel : ObservableObject
         Save();
         if (_deviceClient is null || !_deviceClient.State.IsConnected)
         {
-            SaveStatus = "Profile saved — connect the N70 to apply it";
+            SaveStatus = "Profile saved — connect the earbuds to apply it";
             return;
         }
 
         await RunDeviceActionAsync(
             client => ApplyProfileToDeviceAsync(CreateProfile()),
-            "Profile applied and confirmed by the N70");
+            "Profile applied and confirmed by the earbuds");
     }
 
     [RelayCommand]
@@ -368,7 +456,15 @@ public partial class MainPageViewModel : ObservableObject
     {
         if (_deviceClient is null || !_deviceClient.State.IsConnected)
         {
-            SaveStatus = "Equalizer saved — connect the N70 to apply it";
+            SaveStatus = "Equalizer saved — connect the earbuds to apply it";
+            return;
+        }
+
+        if (SelectedEqualizerPreset == "Custom" && IsN65Model)
+        {
+            await RunDeviceActionAsync(
+                client => client.SetN65EqualizerAsync(GetCustomEqualizerBands()),
+                "Custom equalizer confirmed by the earbuds");
             return;
         }
 
@@ -382,7 +478,7 @@ public partial class MainPageViewModel : ObservableObject
 
             await RunDeviceActionAsync(
                 client => client.SetCustomEqualizerAsync(GetEqualizerBands()),
-                "Custom equalizer confirmed by the N70");
+                "Custom equalizer confirmed by the earbuds");
             return;
         }
 
@@ -393,8 +489,8 @@ public partial class MainPageViewModel : ObservableObject
         }
 
         await RunDeviceActionAsync(
-            client => client.SetEqualizerPresetAsync(EqualizerPresetIds[SelectedEqualizerPreset]),
-            "Preset confirmed by the N70");
+            client => client.SetEqualizerPresetAsync(_equalizerPresetIds[SelectedEqualizerPreset]),
+            "Preset confirmed by the earbuds");
     }
 
     [RelayCommand]
@@ -405,8 +501,96 @@ public partial class MainPageViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void SaveEqualizerCurve()
+    {
+        var name = EqualizerCurveName.Trim();
+        if (name.Length == 0)
+        {
+            SaveStatus = "Type a name to save the curve";
+            return;
+        }
+
+        _savedEqualizerCurves.RemoveAll(curve => curve.Name == name);
+        _savedEqualizerCurves.Add(new SavedEqualizerCurve { Name = name, Bands = ToSavedBands(GetCustomEqualizerBands()) });
+        _savedEqualizerCurves.Sort((left, right) => string.Compare(left.Name, right.Name, StringComparison.CurrentCulture));
+        RefreshSavedEqualizerCurves(name);
+        Save();
+        SaveStatus = $"Curve \"{name}\" saved on this PC";
+    }
+
+    [RelayCommand]
+    private void DeleteEqualizerCurve()
+    {
+        var name = SelectedSavedEqualizerCurve;
+        if (name is null || _savedEqualizerCurves.RemoveAll(curve => curve.Name == name) == 0)
+        {
+            return;
+        }
+
+        RefreshSavedEqualizerCurves(null);
+        Save();
+        SaveStatus = $"Curve \"{name}\" deleted";
+    }
+
+    [RelayCommand]
+    private void EditSelectedPreset()
+    {
+        var preset = _equalizerPresetIds.TryGetValue(SelectedEqualizerPreset, out var id)
+            ? QcyN65Equalizer.GetPreset(id)
+            : null;
+        if (preset is null)
+        {
+            return;
+        }
+
+        LoadCustomEqualizerBands(preset.Bands);
+        QueueCustomEqualizerChange();
+    }
+
+    [RelayCommand]
+    private void SelectLeftEarbud() => IsLeftEarbudSelected = true;
+
+    [RelayCommand]
+    private void SelectRightEarbud() => IsLeftEarbudSelected = false;
+
+    [RelayCommand]
+    private void RestoreFactoryGestures()
+    {
+        _isSynchronizingDevice = true;
+        try
+        {
+            foreach (var gesture in N65Gestures)
+            {
+                gesture.Action = GestureViewModel.FromFunction(gesture.FactoryFunction);
+            }
+        }
+        finally
+        {
+            _isSynchronizingDevice = false;
+        }
+
+        PersistAndRun(
+            async client =>
+            {
+                foreach (var gesture in N65Gestures)
+                {
+                    await client.SetN65KeyFunctionAsync(gesture.Gesture, gesture.FactoryFunction);
+                }
+            },
+            "Factory gestures restored on the earbuds");
+    }
+
+    [RelayCommand]
     private void ResetEqualizer()
     {
+        if (IsN65Model)
+        {
+            LoadCustomEqualizerBands(QcyN65Equalizer.FactoryTuning.Bands);
+            QueueCustomEqualizerChange();
+            SaveStatus = "Custom curve reset to the factory tuning";
+            return;
+        }
+
         _isSynchronizingDevice = true;
         try
         {
@@ -440,6 +624,7 @@ public partial class MainPageViewModel : ObservableObject
     partial void OnSelectedNoiseModeChanged(string value)
     {
         OnPropertyChanged(nameof(IsNoiseCancellationSelected));
+        OnPropertyChanged(nameof(ShowCancellationModes));
         if (value is null || !NoiseModes.Contains(value, StringComparer.Ordinal) ||
             _isLoading || _isSynchronizingDevice)
         {
@@ -469,35 +654,134 @@ public partial class MainPageViewModel : ObservableObject
     {
         Save();
         if (value != "Custom" && EqualizerPresetsSupported &&
-            EqualizerPresetIds.TryGetValue(value, out var preset))
+            _equalizerPresetIds.TryGetValue(value, out var preset))
         {
-            RunWhenConnected(client => client.SetEqualizerPresetAsync(preset), "Equalizer confirmed by the N70");
+            RunWhenConnected(client => client.SetEqualizerPresetAsync(preset), "Equalizer confirmed by the earbuds");
         }
+        else if (value == "Custom" && IsN65Model)
+        {
+            RunWhenConnected(
+                client => client.SetN65EqualizerAsync(GetCustomEqualizerBands()),
+                "Custom equalizer confirmed by the earbuds");
+        }
+    }
+
+    partial void OnCustomEqualizerBandCountChanged(double value)
+    {
+        if (double.IsNaN(value) || _isLoading || _isSynchronizingDevice)
+        {
+            return;
+        }
+
+        var count = (int)Math.Clamp(Math.Round(value), 1, QcyN65Equalizer.MaximumBands);
+        if (count == CustomEqualizerBands.Count)
+        {
+            return;
+        }
+
+        var bands = GetCustomEqualizerBands().Take(count).ToList();
+        while (bands.Count < count)
+        {
+            bands.Add(QcyN65Equalizer.NewBand(bands));
+        }
+
+        LoadCustomEqualizerBands(bands);
+        QueueCustomEqualizerChange();
+    }
+
+    partial void OnSelectedSavedEqualizerCurveChanged(string? value)
+    {
+        var curve = _savedEqualizerCurves.FirstOrDefault(item => item.Name == value);
+        if (curve is null || _isLoading)
+        {
+            return;
+        }
+
+        EqualizerCurveName = curve.Name;
+        LoadCustomEqualizerBands(FromSavedBands(curve.Bands));
+        QueueCustomEqualizerChange();
     }
 
     partial void OnWearDetectionChanged(bool value) => PersistAndRun(
         client => client.SetWearDetectionAsync(value),
-        value ? "Wear detection enabled on the N70" : "Wear detection disabled on the N70");
+        value ? "Wear detection enabled on the earbuds" : "Wear detection disabled on the earbuds");
 
     partial void OnLdacEnabledChanged(bool value) => PersistAndRun(
         client => client.SetLdacAsync(value),
-        "LDAC sent to the N70; the earbuds may restart the connection");
+        IsN65Model
+            ? "LDAC sent; the earbuds restart and OpenQCY reconnects in a few seconds"
+            : "LDAC sent; the earbuds may restart the connection");
 
     partial void OnMultipointEnabledChanged(bool value) => PersistAndRun(
         client => client.SetMultipointAsync(value),
-        "Multipoint sent to the N70; the earbuds may restart the connection");
+        "Multipoint sent; the earbuds may restart the connection");
 
     partial void OnGameModeEnabledChanged(bool value) => PersistAndRun(
         client => client.SetGameModeAsync(value),
-        "Game mode confirmed by the N70");
+        IsN65Model
+            ? "Game mode sent; the earbuds restart and OpenQCY reconnects in a few seconds"
+            : "Game mode confirmed by the earbuds");
+
+    partial void OnDynamicEqualizerEnabledChanged(bool value)
+    {
+        if (value && IsN65Model && SelectedEqualizerPreset == "Custom" && CanSendToDevice)
+        {
+            SaveStatus = "Dynamic EQ only works with a preset, not with the custom curve";
+            App.DispatcherQueue.TryEnqueue(() =>
+            {
+                _isSynchronizingDevice = true;
+                try
+                {
+                    DynamicEqualizerEnabled = false;
+                }
+                finally
+                {
+                    _isSynchronizingDevice = false;
+                }
+            });
+            return;
+        }
+
+        PersistAndRun(
+            client => client.SetDynamicEqualizerAsync(value),
+            value ? "Dynamic EQ enabled on the earbuds" : "Dynamic EQ disabled on the earbuds");
+    }
+
+    partial void OnChannelBalanceChanged(double value)
+    {
+        OnPropertyChanged(nameof(ChannelBalanceDisplay));
+        Save();
+        if (!CanSendToDevice || !IsN65Model)
+        {
+            return;
+        }
+
+        _channelBalanceDebounce?.Cancel();
+        _channelBalanceDebounce?.Dispose();
+        _channelBalanceDebounce = new CancellationTokenSource();
+        _ = SendChannelBalanceAfterDelayAsync(value, _channelBalanceDebounce.Token);
+    }
+
+    partial void OnIsLeftEarbudSelectedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsRightEarbudSelected));
+        OnPropertyChanged(nameof(SelectedEarbudGestures));
+    }
+
+    partial void OnIsN65ModelChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsN70Model));
+        OnPropertyChanged(nameof(ModelLabel));
+        OnPropertyChanged(nameof(ShowCancellationModes));
+    }
 
     partial void OnWindReductionEnabledChanged(bool value) => PersistAndRun(
         client => client.SetWindDetectionAsync(value),
-        "Wind detection confirmed by the N70");
+        "Wind detection confirmed by the earbuds");
 
     partial void OnSleepModeEnabledChanged(bool value) => PersistAndRun(
         client => client.SetSleepModeAsync(value),
-        "Sleep mode confirmed by the N70");
+        "Sleep mode confirmed by the earbuds");
 
     partial void OnAutoApplyEnabledChanged(bool value) => Save();
 
@@ -564,11 +848,11 @@ public partial class MainPageViewModel : ObservableObject
 
     partial void OnDisconnectTimeoutChanged(string value) => PersistAndRun(
         client => client.SetAutoPowerOffAsync(ToAutoPowerOffMinutes(value)),
-        "Automatic power off confirmed by the N70");
+        "Automatic power off confirmed by the earbuds");
 
     private async Task ApplyProfileToDeviceAsync(DeviceProfile profile)
     {
-        var client = _deviceClient ?? throw new InvalidOperationException("The N70 is not connected.");
+        var client = _deviceClient ?? throw new InvalidOperationException("The earbuds are not connected.");
         var state = client.State;
 
         if (state.WearDetectionEnabled.HasValue && state.WearDetectionEnabled != profile.WearDetection)
@@ -576,12 +860,18 @@ public partial class MainPageViewModel : ObservableObject
             await client.SetWearDetectionAsync(profile.WearDetection);
         }
 
-        var noiseControl = ToNoiseControl(profile.SelectedNoiseMode, profile.SelectedNoiseCancellationMode);
+        var noiseControl = ToNoiseControl(profile.SelectedNoiseMode, profile.SelectedNoiseCancellationMode, IsN65Model);
         if (state.NoiseControl is not null && state.NoiseControl != noiseControl)
         {
             await client.SetNoiseModeAsync(
                 noiseControl.Mode,
                 noiseControl.CancellationMode ?? QcyNoiseCancellationMode.Adaptive);
+        }
+
+        if (client.IsJieli)
+        {
+            await ApplyN65ProfileAsync(client, profile);
+            return;
         }
 
         if (state.GameModeEnabled.HasValue && state.GameModeEnabled != profile.GameModeEnabled)
@@ -619,7 +909,7 @@ public partial class MainPageViewModel : ObservableObject
             await client.SetCustomEqualizerAsync(profile.EqBands);
         }
         else if (EqualizerPresetsSupported &&
-            EqualizerPresetIds.TryGetValue(profile.SelectedEqualizerPreset, out var preset) &&
+            _equalizerPresetIds.TryGetValue(profile.SelectedEqualizerPreset, out var preset) &&
             state.EqualizerPreset != preset)
         {
             await client.SetEqualizerPresetAsync(preset);
@@ -643,15 +933,91 @@ public partial class MainPageViewModel : ObservableObject
         }
     }
 
+    private async Task ApplyN65ProfileAsync(QcyDeviceClient client, DeviceProfile profile)
+    {
+        var state = client.State;
+        if (profile.SelectedEqualizerPreset == "Custom")
+        {
+            var desired = FromSavedBands(profile.N65CustomBands);
+            if (desired.Count > 0 &&
+                (state.EqualizerPreset != QcyN65Equalizer.CustomPreset || !HasSameBands(state.Equalizer, desired)))
+            {
+                await client.SetN65EqualizerAsync(desired);
+            }
+        }
+        else if (N65EqualizerPresetIds.TryGetValue(profile.SelectedEqualizerPreset, out var preset) &&
+            state.EqualizerPreset != preset)
+        {
+            await client.SetEqualizerPresetAsync(preset);
+        }
+
+        // A preset change turns dynamic EQ off on the earbuds, so it is applied afterwards.
+        state = client.State;
+        if (profile.SelectedEqualizerPreset != "Custom" && state.DynamicEqualizerEnabled.HasValue &&
+            state.DynamicEqualizerEnabled != profile.DynamicEqualizerEnabled)
+        {
+            await client.SetDynamicEqualizerAsync(profile.DynamicEqualizerEnabled);
+        }
+
+        var balance = (byte)Math.Clamp(Math.Round(profile.ChannelBalance), 0, 100);
+        if (state.ChannelBalance.HasValue && state.ChannelBalance != balance)
+        {
+            await client.SetChannelBalanceAsync(balance);
+        }
+
+        foreach (var gesture in N65Gestures)
+        {
+            if (profile.N65Gestures.TryGetValue(gesture.Name, out var action) &&
+                GestureViewModel.ToFunction(action) is { } function &&
+                state.KeyFunctions.TryGetValue(gesture.Gesture, out var current) &&
+                current != function)
+            {
+                await client.SetN65KeyFunctionAsync(gesture.Gesture, function);
+            }
+        }
+
+        // LDAC and game mode restart the N65 link, so only one of them is sent per connection.
+        // The other one is applied after the reconnection.
+        if (state.LdacEnabled.HasValue && state.LdacEnabled != profile.LdacEnabled)
+        {
+            await client.SetLdacAsync(profile.LdacEnabled);
+        }
+        else if (state.GameModeEnabled.HasValue && state.GameModeEnabled != profile.GameModeEnabled)
+        {
+            await client.SetGameModeAsync(profile.GameModeEnabled);
+        }
+    }
+
     private void DeviceClient_StateChanged(object? sender, QcyDeviceState state)
     {
         if (App.DispatcherQueue.HasThreadAccess)
         {
-            ApplyDeviceState(state);
+            HandleDeviceState(state);
         }
         else
         {
-            App.DispatcherQueue.TryEnqueue(() => ApplyDeviceState(state));
+            App.DispatcherQueue.TryEnqueue(() => HandleDeviceState(state));
+        }
+    }
+
+    private void HandleDeviceState(QcyDeviceState state)
+    {
+        var wasConnected = IsDeviceConnected;
+        ApplyDeviceState(state);
+        if (wasConnected && !state.IsConnected && state.ProtocolVariant == QcyProtocolVariant.Jieli)
+        {
+            // LDAC and game mode restart the N65 link. Reconnect without waiting for the battery timer.
+            DiscoveryStatus = "The earbuds restarted the connection; reconnecting…";
+            _ = ReconnectAfterDelayAsync();
+        }
+    }
+
+    private async Task ReconnectAfterDelayAsync()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(6));
+        if (_deviceClient?.State.IsConnected != true)
+        {
+            await DiscoverDevicesAsync();
         }
     }
 
@@ -698,6 +1064,8 @@ public partial class MainPageViewModel : ObservableObject
             }
 
             GameModeEnabled = state.GameModeEnabled ?? GameModeEnabled;
+            DynamicEqualizerEnabled = state.DynamicEqualizerEnabled ?? DynamicEqualizerEnabled;
+            ChannelBalance = state.ChannelBalance ?? ChannelBalance;
             SleepModeEnabled = state.SleepModeEnabled ?? SleepModeEnabled;
             LdacEnabled = state.LdacEnabled ?? LdacEnabled;
             MultipointEnabled = state.MultipointEnabled ?? MultipointEnabled;
@@ -713,13 +1081,24 @@ public partial class MainPageViewModel : ObservableObject
                 DisconnectTimeout = FromAutoPowerOffMinutes(state.AutoPowerOffMinutes.Value);
             }
 
-            if (state.EqualizerPreset.HasValue)
+            if (state.ProtocolVariant == QcyProtocolVariant.Jieli)
             {
-                SelectedEqualizerPreset = EqualizerPresetIds
+                ApplyN65Equalizer(state);
+                foreach (var gesture in N65Gestures)
+                {
+                    if (state.KeyFunctions.TryGetValue(gesture.Gesture, out var function))
+                    {
+                        gesture.Action = GestureViewModel.FromFunction(function);
+                    }
+                }
+            }
+            else if (state.EqualizerPreset.HasValue)
+            {
+                SelectedEqualizerPreset = _equalizerPresetIds
                     .FirstOrDefault(pair => pair.Value == state.EqualizerPreset.Value).Key ?? SelectedEqualizerPreset;
             }
 
-            if (state.EqualizerGains.Count == 10)
+            if (state.ProtocolVariant == QcyProtocolVariant.Standard && state.EqualizerGains.Count == 10)
             {
                 EqBand1 = state.EqualizerGains[0];
                 EqBand2 = state.EqualizerGains[1];
@@ -752,12 +1131,75 @@ public partial class MainPageViewModel : ObservableObject
         UpdateCapabilities(state);
     }
 
+    private void ApplyN65Equalizer(QcyDeviceState state)
+    {
+        if (!state.EqualizerPreset.HasValue)
+        {
+            return;
+        }
+
+        if (state.EqualizerPreset == QcyN65Equalizer.CustomPreset)
+        {
+            SelectedEqualizerPreset = "Custom";
+
+            // Reloading the editor while the user drags a slider would replace the controls,
+            // so only reload when the earbuds report a different curve.
+            if (state.Equalizer is not null && !HasSameBands(state.Equalizer, GetCustomEqualizerBands()))
+            {
+                LoadCustomEqualizerBands(state.Equalizer.Bands);
+            }
+
+            return;
+        }
+
+        SelectedEqualizerPreset = _equalizerPresetIds
+            .FirstOrDefault(pair => pair.Value == state.EqualizerPreset.Value).Key ?? SelectedEqualizerPreset;
+    }
+
+    private void SetModel(bool isN65)
+    {
+        IsN65Model = isN65;
+        _equalizerPresetIds = isN65 ? N65EqualizerPresetIds : N70EqualizerPresetIds;
+        var presets = new List<string>(_equalizerPresetIds.Keys) { "Custom" };
+        var selected = SelectedEqualizerPreset;
+        var wasLoading = _isLoading;
+        _isLoading = true;
+        try
+        {
+            if (!EqualizerPresets.SequenceEqual(presets))
+            {
+                EqualizerPresets = presets;
+            }
+
+            SelectedEqualizerPreset = presets.Contains(selected) ? selected : "Default";
+        }
+        finally
+        {
+            _isLoading = wasLoading;
+        }
+    }
+
     private void UpdateCapabilities(QcyDeviceState state)
     {
         var characteristics = _connection?.Characteristics ?? [];
+        var isJieli = state.ProtocolVariant == QcyProtocolVariant.Jieli;
+        var commandUuid = isJieli ? QcyUuids.JieliCommand : QcyUuids.Command;
+        var notificationUuid = isJieli ? QcyUuids.JieliNotification : QcyUuids.Notification;
         var commandChannelSupported = state.IsConnected &&
-            characteristics.Any(info => info.Uuid == QcyUuids.Command && info.CanWrite) &&
-            characteristics.Any(info => info.Uuid == QcyUuids.Notification && info.CanNotify);
+            characteristics.Any(info => info.Uuid == commandUuid && info.CanWrite) &&
+            characteristics.Any(info => info.Uuid == notificationUuid && info.CanNotify);
+        if (isJieli)
+        {
+            EqualizerSupported = commandChannelSupported;
+            EqualizerPresetsSupported = commandChannelSupported;
+            EqualizerCapabilityStatus = !state.IsConnected
+                ? "Availability checked on connection"
+                : "Presets from the official app · Custom adjusts the factory tuning (0 dB = default sound)";
+            KeyFunctionsSupported = commandChannelSupported && state.KeyFunctions.Count > 0;
+            WearDetectionSupported = false;
+            return;
+        }
+
         EqualizerPresetsSupported = state.IsConnected &&
             characteristics.Any(info => info.Uuid == QcyUuids.Equalizer && info.CanWrite);
         var customEqualizerConfirmed = state.IsConnected && state.EqualizerGains.Count == 10;
@@ -781,13 +1223,134 @@ public partial class MainPageViewModel : ObservableObject
             state.WearDetectionProtocol != QcyWearDetectionProtocol.Unknown;
     }
 
+    private void N65Gesture_Changed(object? sender, EventArgs eventArgs)
+    {
+        if (sender is not GestureViewModel { Function: { } function } gesture ||
+            _isLoading || _isSynchronizingDevice)
+        {
+            return;
+        }
+
+        PersistAndRun(
+            client => client.SetN65KeyFunctionAsync(gesture.Gesture, function),
+            $"{gesture.Name} confirmed by the earbuds");
+    }
+
     private void PersistTouchFunctions()
     {
         Save();
         RunWhenConnected(
             client => client.SetKeyFunctionsAsync(BuildKeyFunctionMap(CreateProfile(), client.State.KeyFunctions)),
-            "Gestures confirmed by the N70");
+            "Gestures confirmed by the earbuds");
     }
+
+    private void LoadCustomEqualizerBands(IEnumerable<QcyEqualizerBand> bands)
+    {
+        var wasSynchronizing = _isSynchronizingDevice;
+        _isSynchronizingDevice = true;
+        try
+        {
+            foreach (var band in CustomEqualizerBands)
+            {
+                band.Changed -= CustomEqualizerBand_Changed;
+            }
+
+            CustomEqualizerBands.Clear();
+            foreach (var band in bands.Take(QcyN65Equalizer.MaximumBands))
+            {
+                var item = new EqualizerBandViewModel(CustomEqualizerBands.Count + 1, band);
+                item.Changed += CustomEqualizerBand_Changed;
+                CustomEqualizerBands.Add(item);
+            }
+
+            CustomEqualizerBandCount = CustomEqualizerBands.Count;
+        }
+        finally
+        {
+            _isSynchronizingDevice = wasSynchronizing;
+        }
+    }
+
+    private void CustomEqualizerBand_Changed(object? sender, EventArgs eventArgs)
+    {
+        if (!_isSynchronizingDevice)
+        {
+            QueueCustomEqualizerChange();
+        }
+    }
+
+    private void QueueCustomEqualizerChange()
+    {
+        if (_isLoading)
+        {
+            return;
+        }
+
+        // The official app sends every change right away; the debounce only merges slider drags.
+        if (SelectedEqualizerPreset != "Custom")
+        {
+            _isSynchronizingDevice = true;
+            try
+            {
+                SelectedEqualizerPreset = "Custom";
+            }
+            finally
+            {
+                _isSynchronizingDevice = false;
+            }
+        }
+
+        Save();
+        if (!CanSendToDevice || !IsN65Model)
+        {
+            return;
+        }
+
+        _customEqualizerDebounce?.Cancel();
+        _customEqualizerDebounce?.Dispose();
+        _customEqualizerDebounce = new CancellationTokenSource();
+        _ = SendCustomEqualizerAfterDelayAsync(_customEqualizerDebounce.Token);
+    }
+
+    private IReadOnlyList<QcyEqualizerBand> GetCustomEqualizerBands() =>
+        CustomEqualizerBands.Select(band => band.ToBand()).ToArray();
+
+    private void RefreshSavedEqualizerCurves(string? selected)
+    {
+        var wasLoading = _isLoading;
+        _isLoading = true;
+        try
+        {
+            SavedEqualizerCurves.Clear();
+            foreach (var curve in _savedEqualizerCurves)
+            {
+                SavedEqualizerCurves.Add(curve.Name);
+            }
+
+            SelectedSavedEqualizerCurve = selected;
+        }
+        finally
+        {
+            _isLoading = wasLoading;
+        }
+    }
+
+    private static bool HasSameBands(QcyEqualizerState? state, IReadOnlyList<QcyEqualizerBand> bands) =>
+        state is not null && state.Bands.SequenceEqual(bands.Select(QcyN65Equalizer.Clamp));
+
+    private static List<SavedEqualizerBand> ToSavedBands(IEnumerable<QcyEqualizerBand> bands) =>
+        bands.Select(band => new SavedEqualizerBand
+        {
+            Frequency = band.Frequency,
+            Gain = band.Gain,
+            Q = band.Q,
+            Type = band.Type,
+        }).ToList();
+
+    private static List<QcyEqualizerBand> FromSavedBands(IEnumerable<SavedEqualizerBand> bands) =>
+        bands.Select(band => QcyN65Equalizer.Clamp(new QcyEqualizerBand(band.Frequency, band.Gain, band.Q, band.Type)))
+            .Take(QcyN65Equalizer.MaximumBands)
+            .ToList();
 
     private void PersistEqualizerBand()
     {
@@ -850,7 +1413,7 @@ public partial class MainPageViewModel : ObservableObject
 
             _pendingNoiseControl = null;
             ApplyDeviceState(client.State);
-            SaveStatus = $"{NoiseControlDisplayName(requested)} confirmed by the N70";
+            SaveStatus = $"{NoiseControlDisplayName(requested)} confirmed by the earbuds";
         }
         catch (OperationCanceledException) when (version != Volatile.Read(ref _noiseControlRequestVersion))
         {
@@ -864,7 +1427,7 @@ public partial class MainPageViewModel : ObservableObject
 
             _pendingNoiseControl = null;
             ApplyDeviceState(client.State);
-            SaveStatus = $"Not confirmed by the N70: {FriendlyError(exception)}";
+            SaveStatus = $"Not confirmed by the earbuds: {FriendlyError(exception)}";
         }
     }
 
@@ -922,13 +1485,41 @@ public partial class MainPageViewModel : ObservableObject
 
         try
         {
-            SaveStatus = "Sending to the N70…";
+            SaveStatus = "Sending to the earbuds…";
             await action(client);
             SaveStatus = successMessage;
         }
         catch (Exception exception)
         {
-            SaveStatus = $"Not confirmed by the N70: {FriendlyError(exception)}";
+            SaveStatus = $"Not confirmed by the earbuds: {FriendlyError(exception)}";
+        }
+    }
+
+    private async Task SendCustomEqualizerAfterDelayAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(300, cancellationToken);
+            await RunDeviceActionAsync(
+                client => client.SetN65EqualizerAsync(GetCustomEqualizerBands(), cancellationToken),
+                "Custom equalizer confirmed by the earbuds");
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task SendChannelBalanceAfterDelayAsync(double value, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(350, cancellationToken);
+            await RunDeviceActionAsync(
+                client => client.SetChannelBalanceAsync((byte)Math.Clamp(Math.Round(value), 0, 100), cancellationToken),
+                "Channel balance confirmed by the earbuds");
+        }
+        catch (OperationCanceledException)
+        {
         }
     }
 
@@ -939,7 +1530,7 @@ public partial class MainPageViewModel : ObservableObject
             await Task.Delay(350, cancellationToken);
             await RunDeviceActionAsync(
                 client => client.SetPromptVolumeAsync(value, cancellationToken),
-                "Prompt volume confirmed by the N70");
+                "Prompt volume confirmed by the earbuds");
         }
         catch (OperationCanceledException)
         {
@@ -954,9 +1545,9 @@ public partial class MainPageViewModel : ObservableObject
         {
             try
             {
-                ConnectionStatus = "Connecting to the QCY A001 service";
+                ConnectionStatus = "Connecting to the QCY control service";
                 _connection = await _bluetoothTransport.ConnectAsync(candidate);
-                ConnectionStatus = "Reading N70 settings and battery";
+                ConnectionStatus = "Reading earbud settings and battery";
                 _deviceClient = await QcyDeviceClient.CreateAsync(_connection);
                 _deviceClient.StateChanged += DeviceClient_StateChanged;
                 return candidate;
@@ -987,7 +1578,7 @@ public partial class MainPageViewModel : ObservableObject
                 primaryAddress.Value,
                 profile.KnownControlAddress,
                 profile.KnownOtherAddress,
-                QcyUuids.N70BlackVendorId,
+                profile.IsN65Model ? QcyUuids.N65VendorId : QcyUuids.N70BlackVendorId,
                 short.MinValue,
                 0,
                 0,
@@ -1012,6 +1603,8 @@ public partial class MainPageViewModel : ObservableObject
     private async Task DisconnectCoreAsync(bool updateStatus)
     {
         _promptVolumeDebounce?.Cancel();
+        _channelBalanceDebounce?.Cancel();
+        _customEqualizerDebounce?.Cancel();
         _noiseControlCancellation?.Cancel();
         _pendingNoiseControl = null;
         if (_deviceClient is not null)
@@ -1054,6 +1647,7 @@ public partial class MainPageViewModel : ObservableObject
             _knownBluetoothAddress = profile.KnownBluetoothAddress;
             _knownControlAddress = profile.KnownControlAddress;
             _knownOtherAddress = profile.KnownOtherAddress;
+            SetModel(profile.IsN65Model);
             SelectedNoiseMode = profile.SelectedNoiseMode;
             SelectedNoiseCancellationMode = profile.SelectedNoiseCancellationMode;
             SelectedEqualizerPreset = profile.SelectedEqualizerPreset;
@@ -1065,6 +1659,16 @@ public partial class MainPageViewModel : ObservableObject
             SleepModeEnabled = profile.SleepModeEnabled;
             AutoApplyEnabled = profile.AutoApplyEnabled;
             PromptVolume = profile.PromptVolume;
+            DynamicEqualizerEnabled = profile.DynamicEqualizerEnabled;
+            ChannelBalance = profile.ChannelBalance;
+            _savedEqualizerCurves = profile.N65EqualizerCurves;
+            RefreshSavedEqualizerCurves(null);
+            var customBands = FromSavedBands(profile.N65CustomBands);
+            LoadCustomEqualizerBands(customBands.Count > 0 ? customBands : QcyN65Equalizer.FactoryTuning.Bands);
+            foreach (var gesture in N65Gestures)
+            {
+                gesture.Action = profile.N65Gestures.GetValueOrDefault(gesture.Name);
+            }
             EqBand1 = profile.EqBands.ElementAtOrDefault(0);
             EqBand2 = profile.EqBands.ElementAtOrDefault(1);
             EqBand3 = profile.EqBands.ElementAtOrDefault(2);
@@ -1135,6 +1739,14 @@ public partial class MainPageViewModel : ObservableObject
         SleepModeEnabled = SleepModeEnabled,
         AutoApplyEnabled = AutoApplyEnabled,
         PromptVolume = PromptVolume,
+        IsN65Model = IsN65Model,
+        DynamicEqualizerEnabled = DynamicEqualizerEnabled,
+        ChannelBalance = ChannelBalance,
+        N65CustomBands = ToSavedBands(GetCustomEqualizerBands()),
+        N65EqualizerCurves = _savedEqualizerCurves,
+        N65Gestures = N65Gestures
+            .Where(gesture => gesture.Action is not null)
+            .ToDictionary(gesture => gesture.Name, gesture => gesture.Action!),
         EqBands = GetEqualizerBands(),
         LeftDoubleTap = LeftDoubleTap,
         RightDoubleTap = RightDoubleTap,
@@ -1184,12 +1796,14 @@ public partial class MainPageViewModel : ObservableObject
         _ => QcyNoiseMode.NoiseCancellation,
     };
 
-    private static QcyNoiseControlState ToNoiseControl(string mode, string cancellationMode) =>
+    private static QcyNoiseControlState ToNoiseControl(string mode, string cancellationMode, bool isN65) =>
         QcyNoiseControlState.Create(
             ToNoiseMode(mode),
-            NoiseCancellationModeIds.GetValueOrDefault(
-                cancellationMode,
-                QcyNoiseCancellationMode.Adaptive));
+            isN65
+                ? QcyNoiseCancellationMode.Adaptive
+                : NoiseCancellationModeIds.GetValueOrDefault(
+                    cancellationMode,
+                    QcyNoiseCancellationMode.Adaptive));
 
     private bool TryGetSelectedNoiseControl(out QcyNoiseControlState state)
     {
@@ -1201,7 +1815,7 @@ public partial class MainPageViewModel : ObservableObject
             return false;
         }
 
-        state = ToNoiseControl(SelectedNoiseMode, SelectedNoiseCancellationMode);
+        state = ToNoiseControl(SelectedNoiseMode, SelectedNoiseCancellationMode, IsN65Model);
         return true;
     }
 

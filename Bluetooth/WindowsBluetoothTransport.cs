@@ -22,7 +22,7 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
         cancellationToken.ThrowIfCancellationRequested();
 
         return pairedDevices
-            .Where(device => LooksLikeN70(device.Name))
+            .Where(device => LooksLikeSupported(device.Name))
             .Select(device => new
             {
                 device.Name,
@@ -42,8 +42,13 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
         CancellationToken cancellationToken = default)
     {
         var devices = new List<BluetoothDeviceInfo>();
-        var serviceSelector = GattDeviceService.GetDeviceSelectorFromUuid(QcyUuids.MainService);
-        var knownServices = await DeviceInformation.FindAllAsync(serviceSelector);
+        var knownServices = new List<DeviceInformation>();
+        foreach (var serviceUuid in new[] { QcyUuids.MainService, QcyUuids.JieliService })
+        {
+            var serviceSelector = GattDeviceService.GetDeviceSelectorFromUuid(serviceUuid);
+            knownServices.AddRange(await DeviceInformation.FindAllAsync(serviceSelector));
+        }
+
         foreach (var knownService in knownServices)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -77,7 +82,7 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
 
         var pairedSelector = BluetoothLEDevice.GetDeviceSelectorFromPairingState(true);
         var pairedDevices = await DeviceInformation.FindAllAsync(pairedSelector);
-        foreach (var pairedDevice in pairedDevices.Where(device => LooksLikeN70(device.Name)))
+        foreach (var pairedDevice in pairedDevices.Where(device => LooksLikeSupported(device.Name)))
         {
             cancellationToken.ThrowIfCancellationRequested();
             try
@@ -136,9 +141,7 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
                 var name = eventArgs.Advertisement.LocalName;
                 if (string.IsNullOrWhiteSpace(name))
                 {
-                    name = QcyUuids.IsN70(advertisement.VendorId)
-                        ? "QCY MeloBuds N70"
-                        : $"QCY device ({advertisement.VendorId})";
+                    name = QcyUuids.ModelName(advertisement.VendorId);
                 }
 
                 var info = new BluetoothDeviceInfo(
@@ -180,7 +183,7 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
         }
 
         return devices.Values
-            .OrderByDescending(device => QcyUuids.IsN70(device.VendorId))
+            .OrderByDescending(device => QcyUuids.IsSupported(device.VendorId))
             .ThenByDescending(device => device.SignalStrength)
             .ToArray();
     }
@@ -222,9 +225,18 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
                     BluetoothCacheMode.Uncached);
                 cancellationToken.ThrowIfCancellationRequested();
 
+                if (services.Status == GattCommunicationStatus.Success && services.Services.Count == 0)
+                {
+                    // The MeloBuds N65 exposes the QCY protocol on service A002 instead.
+                    services = await bluetoothDevice.GetGattServicesForUuidAsync(
+                        QcyUuids.JieliService,
+                        BluetoothCacheMode.Uncached);
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+
                 if (services.Status != GattCommunicationStatus.Success || services.Services.Count == 0)
                 {
-                    diagnostics.Add($"{QcyAdvertisement.FormatAddress(address)}: A001 service not found ({services.Status})");
+                    diagnostics.Add($"{QcyAdvertisement.FormatAddress(address)}: A001/A002 service not found ({services.Status})");
                     bluetoothDevice.Dispose();
                     bluetoothDevice = null;
                     continue;
@@ -262,9 +274,10 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
         return value;
     }
 
-    private static bool LooksLikeN70(string? name) =>
+    private static bool LooksLikeSupported(string? name) =>
         !string.IsNullOrWhiteSpace(name) &&
-        name.Contains("N70", StringComparison.OrdinalIgnoreCase) &&
+        (name.Contains("N70", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("N65", StringComparison.OrdinalIgnoreCase)) &&
         (name.Contains("QCY", StringComparison.OrdinalIgnoreCase) ||
             name.Contains("MeloBuds", StringComparison.OrdinalIgnoreCase));
 
@@ -281,15 +294,18 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
         }
 
         var name = string.IsNullOrWhiteSpace(bluetoothDevice.Name)
-            ? fallbackName ?? "QCY MeloBuds N70"
+            ? fallbackName ?? "QCY MeloBuds"
             : bluetoothDevice.Name;
+        var vendorId = name.Contains("N65", StringComparison.OrdinalIgnoreCase)
+            ? QcyUuids.N65VendorId
+            : QcyUuids.N70BlackVendorId;
         return new BluetoothDeviceInfo(
             deviceId,
             name,
             bluetoothDevice.BluetoothAddress,
             null,
             null,
-            QcyUuids.N70BlackVendorId,
+            vendorId,
             short.MinValue,
             0,
             0,
