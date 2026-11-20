@@ -9,6 +9,12 @@ public sealed class QcyDeviceClient : IAsyncDisposable
     private static readonly TimeSpan ResponseTimeout = TimeSpan.FromSeconds(2.5);
 
     private readonly IBluetoothDeviceConnection _connection;
+    private readonly bool _isJieli;
+    private readonly Guid _commandUuid;
+    private readonly Guid _notificationUuid;
+    private readonly JieliRcspParser _jieliParser = new();
+    private byte _sn;
+
     private readonly SemaphoreSlim _commandLock = new(1, 1);
     private readonly object _stateLock = new();
     private readonly Dictionary<byte, TaskCompletionSource<byte[]>> _pendingResponses = [];
@@ -17,6 +23,11 @@ public sealed class QcyDeviceClient : IAsyncDisposable
     private QcyDeviceClient(IBluetoothDeviceConnection connection)
     {
         _connection = connection;
+        _isJieli = connection.Characteristics.Any(info =>
+            info.Uuid == QcyUuids.JieliCommand || info.Uuid == QcyUuids.JieliNotification);
+        _commandUuid = _isJieli ? QcyUuids.JieliCommand : QcyUuids.Command;
+        _notificationUuid = _isJieli ? QcyUuids.JieliNotification : QcyUuids.Notification;
+
         State = new QcyDeviceState
         {
             IsConnected = connection.IsConnected,
@@ -31,6 +42,8 @@ public sealed class QcyDeviceClient : IAsyncDisposable
 
     public event EventHandler<QcyDeviceState>? StateChanged;
     public event EventHandler<string>? ProtocolTrace;
+
+    private byte NextSn() => _sn++;
 
     public static async Task<QcyDeviceClient> CreateAsync(
         IBluetoothDeviceConnection connection,
@@ -53,6 +66,21 @@ public sealed class QcyDeviceClient : IAsyncDisposable
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         await ReadDirectCharacteristicsAsync(cancellationToken);
+
+        if (_isJieli)
+        {
+            var targetInfo = JieliRcspPacket.PackTargetInfo(NextSn(), 0x20);
+            Trace($"tx {Convert.ToHexString(targetInfo)}");
+            try
+            {
+                await _connection.WriteAsync(_commandUuid, targetInfo, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                Trace($"target info tx failed: {ex.Message}");
+            }
+        }
+
         await QueryAsync(0x2C, cancellationToken);
         if (State.WearDetectionProtocol == QcyWearDetectionProtocol.Unknown)
         {
@@ -108,7 +136,7 @@ public sealed class QcyDeviceClient : IAsyncDisposable
         else
         {
             throw new NotSupportedException(
-                "The N70 did not confirm a compatible wear-detection command on this connection.");
+                $"The {State.DeviceName} did not confirm a compatible wear-detection command on this connection.");
         }
 
         await WriteAndConfirmAsync(opcode, packet, cancellationToken);
@@ -124,17 +152,17 @@ public sealed class QcyDeviceClient : IAsyncDisposable
             0x17,
             QcyCommands.SetNoiseMode(mode, cancellationMode),
             cancellationToken);
-        var confirmed = response is null ? null : QcyNoiseControlState.Parse(response);
+        var confirmed = response is null || response.Length == 0 ? null : QcyNoiseControlState.Parse(response);
         if (confirmed != expected)
         {
             response = await QueryAsync(0x17, cancellationToken);
-            confirmed = response is null ? null : QcyNoiseControlState.Parse(response);
+            confirmed = response is null || response.Length == 0 ? null : QcyNoiseControlState.Parse(response);
         }
 
         if (confirmed != expected)
         {
             throw new InvalidOperationException(
-                $"The N70 reported {FormatNoiseState(confirmed)}, but the app requested {FormatNoiseState(expected)}.");
+                $"The {State.DeviceName} reported {FormatNoiseState(confirmed)}, but the app requested {FormatNoiseState(expected)}.");
         }
     }
 
@@ -165,7 +193,15 @@ public sealed class QcyDeviceClient : IAsyncDisposable
 
     public async Task SetEqualizerPresetAsync(byte presetIndex, CancellationToken cancellationToken = default)
     {
-        await _connection.WriteAsync(QcyUuids.Equalizer, QcyCommands.SetEqualizerPreset(presetIndex), cancellationToken);
+        if (_connection.Characteristics.Any(info => info.Uuid == QcyUuids.Equalizer && info.CanWrite))
+        {
+            await _connection.WriteAsync(QcyUuids.Equalizer, QcyCommands.SetEqualizerPreset(presetIndex), cancellationToken);
+        }
+        else
+        {
+            await WriteAndConfirmAsync(0x22, [presetIndex], cancellationToken);
+        }
+
         await QueryAsync(0x22, cancellationToken);
     }
 
@@ -180,8 +216,15 @@ public sealed class QcyDeviceClient : IAsyncDisposable
         IReadOnlyDictionary<byte, byte> mappings,
         CancellationToken cancellationToken = default)
     {
-        await _connection.WriteAsync(QcyUuids.KeyFunctions, QcyCommands.SetKeyFunctions(mappings), cancellationToken);
-        await ReadKeyFunctionsAsync(cancellationToken);
+        if (_connection.Characteristics.Any(info => info.Uuid == QcyUuids.KeyFunctions && info.CanWrite))
+        {
+            await _connection.WriteAsync(QcyUuids.KeyFunctions, QcyCommands.SetKeyFunctions(mappings), cancellationToken);
+            await ReadKeyFunctionsAsync(cancellationToken);
+        }
+        else
+        {
+            await WriteAndConfirmAsync(0x2B, QcyCommands.SetKeyFunctions(mappings), cancellationToken);
+        }
     }
 
     public async ValueTask DisposeAsync()
@@ -210,10 +253,11 @@ public sealed class QcyDeviceClient : IAsyncDisposable
 
     private async Task InitializeAsync(CancellationToken cancellationToken)
     {
-        RequireCharacteristic(QcyUuids.Command, canWrite: true);
-        RequireCharacteristic(QcyUuids.Notification, canNotify: true);
-        await _connection.SubscribeAsync(QcyUuids.Notification, cancellationToken);
-        if (_connection.Characteristics.Any(info => info.Uuid == QcyUuids.Battery && info.CanNotify))
+        RequireCharacteristic(_commandUuid, canWrite: true);
+        RequireCharacteristic(_notificationUuid, canNotify: true);
+        await _connection.SubscribeAsync(_notificationUuid, cancellationToken);
+
+        if (!_isJieli && _connection.Characteristics.Any(info => info.Uuid == QcyUuids.Battery && info.CanNotify))
         {
             await _connection.SubscribeAsync(QcyUuids.Battery, cancellationToken);
         }
@@ -242,6 +286,23 @@ public sealed class QcyDeviceClient : IAsyncDisposable
 
     public async Task RefreshBatteryAsync(CancellationToken cancellationToken = default)
     {
+        if (_isJieli)
+        {
+            var advGet = JieliRcspPacket.PackAdvGet(NextSn(), 1);
+            Trace($"tx {Convert.ToHexString(advGet)}");
+            try
+            {
+                await _connection.WriteAsync(_commandUuid, advGet, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                Trace($"adv get battery failed: {ex.Message}");
+            }
+
+            await QueryAsync(0x2F, cancellationToken);
+            return;
+        }
+
         var battery = await TryReadAsync(QcyUuids.Battery, cancellationToken);
         if (battery is { Length: >= 2 })
         {
@@ -284,7 +345,11 @@ public sealed class QcyDeviceClient : IAsyncDisposable
 
     private async Task<byte[]?> QueryAsync(byte opcode, CancellationToken cancellationToken)
     {
-        var response = await SendAndAwaitAsync(opcode, QcyCommands.Request(opcode), cancellationToken);
+        var packet = _isJieli
+            ? JieliRcspPacket.PackCustomRequest(NextSn(), opcode)
+            : QcyCommands.Request(opcode);
+
+        var response = await SendAndAwaitAsync(opcode, packet, cancellationToken);
         if (response is null)
         {
             Trace($"query 0x{opcode:X2}: no response");
@@ -296,7 +361,7 @@ public sealed class QcyDeviceClient : IAsyncDisposable
     private async Task WriteAndConfirmAsync(byte opcode, byte[] packet, CancellationToken cancellationToken)
     {
         var response = await SendAndAwaitAsync(opcode, packet, cancellationToken);
-        if (response is null)
+        if (response is null || response.Length == 0)
         {
             response = await QueryAsync(opcode, cancellationToken);
         }
@@ -304,7 +369,7 @@ public sealed class QcyDeviceClient : IAsyncDisposable
         if (response is null)
         {
             throw new InvalidOperationException(
-                $"The N70 did not confirm command 0x{opcode:X2}; the change was not considered applied.");
+                $"The {State.DeviceName} did not confirm command 0x{opcode:X2}; the change was not considered applied.");
         }
     }
 
@@ -323,8 +388,22 @@ public sealed class QcyDeviceClient : IAsyncDisposable
                 _pendingResponses[expectedOpcode] = completion;
             }
 
+            if (_isJieli)
+            {
+                // If packet is WuQi formatted (0xFF, len, opcode, paramLen, params...), convert to JieLi RCSP
+                if (packet.Length >= 4 && packet[0] == 0xFF)
+                {
+                    var opcode = packet[2];
+                    var paramLen = packet[3];
+                    var parameters = packet.AsSpan(4, paramLen);
+                    packet = opcode == 0xFE && parameters.Length >= 1
+                        ? JieliRcspPacket.PackCustomRequest(NextSn(), parameters[0])
+                        : JieliRcspPacket.PackCustomCommand(NextSn(), opcode, parameters);
+                }
+            }
+
             Trace($"tx {Convert.ToHexString(packet)}");
-            await _connection.WriteAsync(QcyUuids.Command, packet, cancellationToken);
+            await _connection.WriteAsync(_commandUuid, packet, cancellationToken);
 
             try
             {
@@ -358,22 +437,63 @@ public sealed class QcyDeviceClient : IAsyncDisposable
             return;
         }
 
-        if (eventArgs.CharacteristicUuid != QcyUuids.Notification)
+        if (eventArgs.CharacteristicUuid != _notificationUuid)
         {
             return;
         }
 
         Trace($"rx {Convert.ToHexString(eventArgs.Value)}");
-        foreach (var command in QcyPacket.Parse(eventArgs.Value))
-        {
-            ApplyCommand(command);
-            TaskCompletionSource<byte[]>? completion;
-            lock (_stateLock)
-            {
-                _pendingResponses.TryGetValue(command.Opcode, out completion);
-            }
 
-            completion?.TrySetResult(command.Parameters);
+        if (_isJieli)
+        {
+            var frames = _jieliParser.Feed(eventArgs.Value);
+            foreach (var frame in frames)
+            {
+                if (frame.IsCommand && frame.WantsAnswer)
+                {
+                    var answer = JieliRcspPacket.PackAnswer(frame.Opcode, frame.Sn);
+                    Trace($"tx answer {Convert.ToHexString(answer)}");
+                    _ = _connection.WriteAsync(_commandUuid, answer);
+                }
+
+                var commands = JieliRcspPacket.ExtractCommands(frame);
+                foreach (var command in commands)
+                {
+                    ApplyCommand(command);
+                    TaskCompletionSource<byte[]>? completion;
+                    lock (_stateLock)
+                    {
+                        _pendingResponses.TryGetValue(command.Opcode, out completion);
+                    }
+
+                    completion?.TrySetResult(command.Parameters);
+                }
+
+                if (!frame.IsCommand && frame.Status == 0 && commands.Count == 0)
+                {
+                    lock (_stateLock)
+                    {
+                        foreach (var pending in _pendingResponses.Values)
+                        {
+                            pending.TrySetResult([]);
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            foreach (var command in QcyPacket.Parse(eventArgs.Value))
+            {
+                ApplyCommand(command);
+                TaskCompletionSource<byte[]>? completion;
+                lock (_stateLock)
+                {
+                    _pendingResponses.TryGetValue(command.Opcode, out completion);
+                }
+
+                completion?.TrySetResult(command.Parameters);
+            }
         }
     }
 
@@ -384,7 +504,7 @@ public sealed class QcyDeviceClient : IAsyncDisposable
         {
             foreach (var pending in _pendingResponses.Values)
             {
-                pending.TrySetException(new InvalidOperationException("The N70 disconnected during the command."));
+                pending.TrySetException(new InvalidOperationException($"The {State.DeviceName} disconnected during the command."));
             }
         }
     }
@@ -523,7 +643,9 @@ public sealed class QcyDeviceClient : IAsyncDisposable
     private static string FormatVersion(ReadOnlySpan<byte> value) =>
         value.Length >= 6
             ? $"L {value[0]}.{value[1]}.{value[2]} · R {value[3]}.{value[4]}.{value[5]}"
-            : $"{value[0]}.{value[1]}.{value[2]}";
+            : (value.Length >= 4
+                ? $"{value[0]}.{value[1]}.{value[2]}.{value[3]}"
+                : $"{value[0]}.{value[1]}.{value[2]}");
 
     private static string ShortUuid(Guid uuid) => uuid.ToString("D")[4..8];
 }

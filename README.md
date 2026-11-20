@@ -15,7 +15,9 @@ Download and run `OpenQCY-Desktop-Setup.exe`. The installer is self-contained, i
 > [!NOTE]
 > Community builds are currently unsigned. Windows may show an "Unknown publisher" or Microsoft Defender SmartScreen warning. Verify the download with the release's `SHA256SUMS.txt` file.
 
-OpenQCY Desktop is an open-source Windows controller for QCY earbuds. The first supported target is the **QCY MeloBuds N70 (HT18)**.
+OpenQCY Desktop is an open-source Windows controller for QCY earbuds. Supported targets:
+- **QCY MeloBuds N70 (HT18)** (WuQi chip)
+- **QCY MeloBuds N30 (HT16)** (JieLi JL7016 chip)
 
 > [!IMPORTANT]
 > This is an independent community project. It is not affiliated with, endorsed by, or supported by QCY or Dongguan Hele Electronics Co., Ltd. QCY and MeloBuds are trademarks of their respective owners.
@@ -24,15 +26,20 @@ OpenQCY Desktop is an open-source Windows controller for QCY earbuds. The first 
 
 ## Project status
 
-OpenQCY Desktop now has a hardware-backed QCY MeloBuds N70 implementation. On August 3, 2026, the Windows app was validated against vendor ID `23877`, firmware `L 3.0.13 · R 3.0.13`:
+OpenQCY Desktop provides hardware-backed support for both the **QCY MeloBuds N70** and **QCY MeloBuds N30**:
 
-- active BLE discovery through QCY manufacturer data (`0x521C`)
-- connection to service `A001` and notification-based command responses
-- real firmware and left/right/case battery readings
-- automatic reconnect from the locally remembered control address, cached Windows GATT service, or the next N70 advertisement
-- optional startup with Windows, running silently from the notification area until opened
-- English desktop and notification-area interfaces
-- state reads for ANC, game mode, sleep mode, LDAC, multipoint, wind detection, prompt volume, and auto power-off
+- **QCY MeloBuds N30 (HT16)**: Validated against vendor IDs `32881` (`0x8071`) and `32883` (`0x8073`), firmware `2.0.0.3` (JieLi JL7016 RCSP protocol over Classic Bluetooth RFCOMM SPP and BLE GATT).
+- **QCY MeloBuds N70 (HT18)**: Validated against vendor ID `23877`, firmware `L 3.0.13 · R 3.0.13` (WuQi protocol over BLE GATT service `A001`).
+
+Features:
+- Dual-architecture driver supporting both WuQi and JieLi RCSP protocols
+- Dual transport over Bluetooth Classic RFCOMM SPP and BLE GATT
+- Active BLE discovery through QCY manufacturer data (`0x521C`) and Classic SPP pairing detection
+- Real firmware version and left/right/case battery readings
+- Dynamic UI showing model-specific controls and names
+- Automatic reconnect from cached Windows Bluetooth services
+- Optional startup with Windows, running silently from the notification area until opened
+- State management for ANC (Noise Cancellation, Normal, Transparency), game mode, sleep mode, LDAC, and multipoint
 - wear detection enabled and disabled from the desktop UI, followed by device readback
 - a local profile that is reapplied when the N70 reconnects
 

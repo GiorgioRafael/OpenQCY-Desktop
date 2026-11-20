@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetFramework>net9.0-windows10.0.26100.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.22000.0</TargetPlatformMinVersion>
     <RootNamespace>OpenQCY_Desktop</RootNamespace>
     <Version>0.2.0</Version>
@@ -23,6 +23,7 @@
     <ApplicationIcon>Assets\AppIcon-v2.ico</ApplicationIcon>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -51,11 +52,7 @@
     <Compile Remove="Bluetooth\**\*.cs" />
     <Compile Remove="Device\**\*.cs" />
     <Compile Remove="Diagnostics\**\*.cs" />
-    <Compile Remove="Protocol\QcyAdvertisement.cs" />
-    <Compile Remove="Protocol\QcyCommands.cs" />
-    <Compile Remove="Protocol\QcyPacket.cs" />
-    <Compile Remove="Protocol\QcyUuids.cs" />
-    <Compile Remove="Protocol\obj\**\*.cs" />
+    <Compile Remove="Protocol\**\*.cs" />
     <Content Remove="tests\**\*" />
     <None Remove="tests\**\*" />
   </ItemGroup>
@@ -88,7 +85,7 @@
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.3.1" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" Version="0.5.0" />
-    <PackageReference Include="H.NotifyIcon.WinUI" Version="2.4.1" />
+    <PackageReference Include="H.NotifyIcon.WinUI" Version="2.1.4" />
   </ItemGroup>
 
   <!--

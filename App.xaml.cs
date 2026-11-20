@@ -15,6 +15,28 @@ public partial class App : Application
 
     public App()
     {
+        UnhandledException += (s, e) =>
+        {
+            try
+            {
+                var dir = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OpenQCY");
+                System.IO.Directory.CreateDirectory(dir);
+                System.IO.File.AppendAllText(System.IO.Path.Combine(dir, "crash.log"),
+                    $"\n[{DateTime.Now}] Unhandled XAML Exception: {e.Message}\n{e.Exception}\n{e.Exception?.StackTrace}\n");
+            }
+            catch { }
+        };
+        AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+        {
+            try
+            {
+                var dir = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OpenQCY");
+                System.IO.Directory.CreateDirectory(dir);
+                System.IO.File.AppendAllText(System.IO.Path.Combine(dir, "crash.log"),
+                    $"\n[{DateTime.Now}] AppDomain Exception: {e.ExceptionObject}\n");
+            }
+            catch { }
+        };
         InitializeComponent();
     }
 
