@@ -25,7 +25,22 @@ public sealed partial class MainWindow : Window
         AppWindow.Closing += AppWindow_Closing;
 
         RootFrame.Navigate(typeof(MainPage));
-        TrayIcon.ForceCreate(enablesEfficiencyMode: false);
+        try
+        {
+            TrayIcon.ForceCreate(enablesEfficiencyMode: false);
+        }
+        catch
+        {
+            // If the shell notification area is busy or holding a stale icon handle, retry shortly after
+            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+            {
+                try
+                {
+                    TrayIcon.ForceCreate(enablesEfficiencyMode: false);
+                }
+                catch { }
+            });
+        }
 
 #if DEBUG
         if (Environment.GetCommandLineArgs().Contains("--show-tray-preview", StringComparer.OrdinalIgnoreCase))

@@ -15,22 +15,29 @@ Baixe e execute `OpenQCY-Desktop-Setup.exe`. O instalador é autocontido, instal
 > [!NOTE]
 > As compilações comunitárias ainda não são assinadas. O Windows pode exibir "Editor desconhecido" ou um aviso do Microsoft Defender SmartScreen. Confira o download com o arquivo `SHA256SUMS.txt` da versão.
 
-OpenQCY Desktop é um controlador open source para fones QCY no Windows. O primeiro modelo suportado é o **QCY MeloBuds N70 (HT18)**.
+OpenQCY Desktop é um controlador open source para fones QCY no Windows. Modelos suportados:
+- **QCY MeloBuds N70 (HT18)** (chip WuQi)
+- **QCY MeloBuds N30 (HT16)** (chip JieLi JL7016)
 
 > [!IMPORTANT]
 > Este é um projeto comunitário independente, sem afiliação, endosso ou suporte da QCY ou da Dongguan Hele Electronics Co., Ltd. QCY e MeloBuds são marcas de seus respectivos proprietários.
 
 ## Estado do projeto
 
-O OpenQCY Desktop já possui uma implementação real para o QCY MeloBuds N70. Em 3 de agosto de 2026, o aplicativo foi validado no Windows com o vendor ID `23877` e o firmware `L 3.0.13 · R 3.0.13`:
+O OpenQCY Desktop oferece suporte validado em hardware para o **QCY MeloBuds N70** e para o **QCY MeloBuds N30**:
 
-- descoberta BLE ativa pelos dados do fabricante QCY (`0x521C`)
-- conexão ao serviço `A001` e respostas por notificações
-- leitura real do firmware e das baterias esquerda, direita e do estojo
-- reconexão automática pelo endereço de controle salvo localmente, pelo serviço GATT em cache ou pelo próximo anúncio do N70
-- inicialização opcional com o Windows, em segundo plano somente pela área de notificação
-- interfaces da janela principal e da área de notificação em inglês
-- leitura de ANC, modo jogo, modo sono, LDAC, multiponto, vento, volume dos avisos e desligamento automático
+- **QCY MeloBuds N30 (HT16)**: Validado no Windows com os vendor IDs `32881` (`0x8071`) e `32883` (`0x8073`), firmware `2.0.0.3` (protocolo JieLi JL7016 RCSP sobre Bluetooth Classic RFCOMM SPP e BLE GATT).
+- **QCY MeloBuds N70 (HT18)**: Validado no Windows com o vendor ID `23877`, firmware `L 3.0.13 · R 3.0.13` (protocolo WuQi sobre serviço BLE GATT `A001`).
+
+Recursos:
+- Driver de arquitetura dual suportando os protocolos WuQi e JieLi RCSP
+- Transporte dual via Bluetooth Classic RFCOMM SPP e BLE GATT
+- Descoberta BLE ativa pelos dados do fabricante QCY (`0x521C`) e pareamento Classic SPP
+- Leitura real do firmware e das baterias esquerda, direita e do estojo
+- Interface dinâmica com nomes e controles específicos do modelo detectado
+- Reconexão automática pelo serviço de controle salvo ou em cache no Windows
+- Inicialização opcional com o Windows, em segundo plano pela área de notificação
+- Leitura e controle de ANC (Cancelamento de ruído, Normal, Transparência), modo jogo, modo sono, LDAC e multiponto
 - detecção de uso ligada e desligada pela interface do PC, com confirmação lida do fone
 - perfil local reaplicado quando o N70 reconecta
 

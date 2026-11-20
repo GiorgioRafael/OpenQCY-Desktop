@@ -173,7 +173,7 @@ public partial class MainPageViewModel : ObservableObject
     public partial string DiscoveryStatus { get; set; } = "Ready to find the QCY control channel";
 
     [ObservableProperty]
-    public partial string DeviceName { get; set; } = "QCY MeloBuds N70";
+    public partial string DeviceName { get; set; } = "QCY MeloBuds N30";
 
     [ObservableProperty]
     public partial string ConnectionStatus { get; set; } = "Control disconnected";
@@ -191,7 +191,7 @@ public partial class MainPageViewModel : ObservableObject
     public partial string CaseBatteryDisplay { get; set; } = "—";
 
     [ObservableProperty]
-    public partial string BatteryStatus { get; set; } = "Looking for a recent N70 battery reading";
+    public partial string BatteryStatus { get; set; } = "Looking for a recent battery reading";
 
     [ObservableProperty]
     public partial double LeftBattery { get; set; }
@@ -267,11 +267,11 @@ public partial class MainPageViewModel : ObservableObject
                     : "Last overall estimate stored by Windows";
             }
 
-            DiscoveryStatus = "Looking for the N70 already known to Windows…";
+            DiscoveryStatus = "Looking for QCY earbuds already known to Windows…";
             ConnectionStatus = "Looking for the saved control channel";
 
             var knownDevices = (await _bluetoothTransport.FindPairedQcyDevicesAsync())
-                .Where(device => QcyUuids.IsN70(device.VendorId))
+                .Where(device => QcyUuids.IsSupported(device.VendorId))
                 .ToList();
             var rememberedDevice = CreateRememberedDevice(desiredProfile);
             if (rememberedDevice is not null)
@@ -282,17 +282,17 @@ public partial class MainPageViewModel : ObservableObject
             var target = await ConnectFirstAvailableAsync(knownDevices);
             if (target is null)
             {
-                DiscoveryStatus = "The N70 was not cached; scanning for BLE advertisements…";
+                DiscoveryStatus = "Earbuds were not cached; scanning for BLE advertisements…";
                 ConnectionStatus = "Looking for the control channel advertisement";
                 var advertisedDevices = await _bluetoothTransport.ScanForQcyDevicesAsync(TimeSpan.FromSeconds(8));
-                var advertisedN70 = advertisedDevices
-                    .Where(device => QcyUuids.IsN70(device.VendorId))
+                var advertisedSupported = advertisedDevices
+                    .Where(device => QcyUuids.IsSupported(device.VendorId))
                     .ToArray();
-                target = await ConnectFirstAvailableAsync(advertisedN70);
+                target = await ConnectFirstAvailableAsync(advertisedSupported);
                 if (target is null)
                 {
                     throw new InvalidOperationException(
-                        "The N70 was not found in the Windows cache and did not advertise its control channel. Open the case or remove an earbud and try again.");
+                        "The earbuds were not found in the Windows cache and did not advertise their control channel. Connect the earbuds or open the case and try again.");
                 }
             }
 
@@ -305,14 +305,14 @@ public partial class MainPageViewModel : ObservableObject
                 RightBattery = target.RightBattery;
                 CaseBattery = target.CaseBattery;
                 UpdateBatteryDisplays();
-                BatteryStatus = "Battery detected from the N70 advertisement";
+                BatteryStatus = "Battery detected from advertisement";
             }
 
             ApplyDeviceState(_deviceClient!.State);
 
             if (desiredProfile.AutoApplyEnabled)
             {
-                SaveStatus = "Reapplying the saved profile to the N70…";
+                SaveStatus = "Reapplying the saved profile to the earbuds…";
                 await ApplyProfileToDeviceAsync(desiredProfile);
             }
 
@@ -321,8 +321,8 @@ public partial class MainPageViewModel : ObservableObject
             BatteryStatus = "Updates automatically while the control channel is connected";
             Save();
             SaveStatus = desiredProfile.AutoApplyEnabled
-                ? "Profile confirmed by the N70"
-                : "Current N70 state loaded";
+                ? "Profile confirmed by the earbuds"
+                : "Current earbud state loaded";
         }
         catch (Exception exception)
         {
@@ -333,7 +333,7 @@ public partial class MainPageViewModel : ObservableObject
             BatteryStatus = windowsBattery is not null
                 ? "Overall Windows estimate; open the case to read each earbud and the case"
                 : HasBatteryReading
-                ? "Showing the last reading received from the N70"
+                ? "Showing the last reading received from the earbuds"
                 : "No reading — open the case or remove an earbud to advertise the battery";
         }
         finally
@@ -354,13 +354,13 @@ public partial class MainPageViewModel : ObservableObject
         Save();
         if (_deviceClient is null || !_deviceClient.State.IsConnected)
         {
-            SaveStatus = "Profile saved — connect the N70 to apply it";
+            SaveStatus = "Profile saved — connect the earbuds to apply it";
             return;
         }
 
         await RunDeviceActionAsync(
             client => ApplyProfileToDeviceAsync(CreateProfile()),
-            "Profile applied and confirmed by the N70");
+            "Profile applied and confirmed by the earbuds");
     }
 
     [RelayCommand]
@@ -368,7 +368,7 @@ public partial class MainPageViewModel : ObservableObject
     {
         if (_deviceClient is null || !_deviceClient.State.IsConnected)
         {
-            SaveStatus = "Equalizer saved — connect the N70 to apply it";
+            SaveStatus = "Equalizer saved — connect the earbuds to apply it";
             return;
         }
 
@@ -382,7 +382,7 @@ public partial class MainPageViewModel : ObservableObject
 
             await RunDeviceActionAsync(
                 client => client.SetCustomEqualizerAsync(GetEqualizerBands()),
-                "Custom equalizer confirmed by the N70");
+                "Custom equalizer confirmed by the earbuds");
             return;
         }
 
@@ -394,7 +394,7 @@ public partial class MainPageViewModel : ObservableObject
 
         await RunDeviceActionAsync(
             client => client.SetEqualizerPresetAsync(EqualizerPresetIds[SelectedEqualizerPreset]),
-            "Preset confirmed by the N70");
+            "Preset confirmed by the earbuds");
     }
 
     [RelayCommand]
@@ -471,33 +471,33 @@ public partial class MainPageViewModel : ObservableObject
         if (value != "Custom" && EqualizerPresetsSupported &&
             EqualizerPresetIds.TryGetValue(value, out var preset))
         {
-            RunWhenConnected(client => client.SetEqualizerPresetAsync(preset), "Equalizer confirmed by the N70");
+            RunWhenConnected(client => client.SetEqualizerPresetAsync(preset), "Equalizer confirmed by the earbuds");
         }
     }
 
     partial void OnWearDetectionChanged(bool value) => PersistAndRun(
         client => client.SetWearDetectionAsync(value),
-        value ? "Wear detection enabled on the N70" : "Wear detection disabled on the N70");
+        value ? "Wear detection enabled on the earbuds" : "Wear detection disabled on the earbuds");
 
     partial void OnLdacEnabledChanged(bool value) => PersistAndRun(
         client => client.SetLdacAsync(value),
-        "LDAC sent to the N70; the earbuds may restart the connection");
+        "LDAC sent to the earbuds; the earbuds may restart the connection");
 
     partial void OnMultipointEnabledChanged(bool value) => PersistAndRun(
         client => client.SetMultipointAsync(value),
-        "Multipoint sent to the N70; the earbuds may restart the connection");
+        "Multipoint sent to the earbuds; the earbuds may restart the connection");
 
     partial void OnGameModeEnabledChanged(bool value) => PersistAndRun(
         client => client.SetGameModeAsync(value),
-        "Game mode confirmed by the N70");
+        "Game mode confirmed by the earbuds");
 
     partial void OnWindReductionEnabledChanged(bool value) => PersistAndRun(
         client => client.SetWindDetectionAsync(value),
-        "Wind detection confirmed by the N70");
+        "Wind detection confirmed by the earbuds");
 
     partial void OnSleepModeEnabledChanged(bool value) => PersistAndRun(
         client => client.SetSleepModeAsync(value),
-        "Sleep mode confirmed by the N70");
+        "Sleep mode confirmed by the earbuds");
 
     partial void OnAutoApplyEnabledChanged(bool value) => Save();
 
@@ -564,11 +564,11 @@ public partial class MainPageViewModel : ObservableObject
 
     partial void OnDisconnectTimeoutChanged(string value) => PersistAndRun(
         client => client.SetAutoPowerOffAsync(ToAutoPowerOffMinutes(value)),
-        "Automatic power off confirmed by the N70");
+        "Automatic power off confirmed by the earbuds");
 
     private async Task ApplyProfileToDeviceAsync(DeviceProfile profile)
     {
-        var client = _deviceClient ?? throw new InvalidOperationException("The N70 is not connected.");
+        var client = _deviceClient ?? throw new InvalidOperationException("The earbuds are not connected.");
         var state = client.State;
 
         if (state.WearDetectionEnabled.HasValue && state.WearDetectionEnabled != profile.WearDetection)
@@ -786,7 +786,7 @@ public partial class MainPageViewModel : ObservableObject
         Save();
         RunWhenConnected(
             client => client.SetKeyFunctionsAsync(BuildKeyFunctionMap(CreateProfile(), client.State.KeyFunctions)),
-            "Gestures confirmed by the N70");
+            "Gestures confirmed by the earbuds");
     }
 
     private void PersistEqualizerBand()
@@ -850,7 +850,7 @@ public partial class MainPageViewModel : ObservableObject
 
             _pendingNoiseControl = null;
             ApplyDeviceState(client.State);
-            SaveStatus = $"{NoiseControlDisplayName(requested)} confirmed by the N70";
+            SaveStatus = $"{NoiseControlDisplayName(requested)} confirmed by the earbuds";
         }
         catch (OperationCanceledException) when (version != Volatile.Read(ref _noiseControlRequestVersion))
         {
@@ -864,7 +864,7 @@ public partial class MainPageViewModel : ObservableObject
 
             _pendingNoiseControl = null;
             ApplyDeviceState(client.State);
-            SaveStatus = $"Not confirmed by the N70: {FriendlyError(exception)}";
+            SaveStatus = $"Not confirmed by the earbuds: {FriendlyError(exception)}";
         }
     }
 
@@ -922,13 +922,13 @@ public partial class MainPageViewModel : ObservableObject
 
         try
         {
-            SaveStatus = "Sending to the N70…";
+            SaveStatus = "Sending to the earbuds…";
             await action(client);
             SaveStatus = successMessage;
         }
         catch (Exception exception)
         {
-            SaveStatus = $"Not confirmed by the N70: {FriendlyError(exception)}";
+            SaveStatus = $"Not confirmed by the earbuds: {FriendlyError(exception)}";
         }
     }
 
@@ -939,7 +939,7 @@ public partial class MainPageViewModel : ObservableObject
             await Task.Delay(350, cancellationToken);
             await RunDeviceActionAsync(
                 client => client.SetPromptVolumeAsync(value, cancellationToken),
-                "Prompt volume confirmed by the N70");
+                "Prompt volume confirmed by the earbuds");
         }
         catch (OperationCanceledException)
         {
@@ -956,7 +956,7 @@ public partial class MainPageViewModel : ObservableObject
             {
                 ConnectionStatus = "Connecting to the QCY A001 service";
                 _connection = await _bluetoothTransport.ConnectAsync(candidate);
-                ConnectionStatus = "Reading N70 settings and battery";
+                ConnectionStatus = "Reading earbud settings and battery";
                 _deviceClient = await QcyDeviceClient.CreateAsync(_connection);
                 _deviceClient.StateChanged += DeviceClient_StateChanged;
                 return candidate;
@@ -987,7 +987,7 @@ public partial class MainPageViewModel : ObservableObject
                 primaryAddress.Value,
                 profile.KnownControlAddress,
                 profile.KnownOtherAddress,
-                QcyUuids.N70BlackVendorId,
+                DeviceName.Contains("N30", StringComparison.OrdinalIgnoreCase) || DeviceName.Contains("HT16", StringComparison.OrdinalIgnoreCase) ? QcyUuids.N30VendorId : QcyUuids.N70BlackVendorId,
                 short.MinValue,
                 0,
                 0,

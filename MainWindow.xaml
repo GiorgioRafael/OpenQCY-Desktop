@@ -16,7 +16,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TitleBar x:Name="AppTitleBar" Title="OpenQCY Desktop" Subtitle="QCY MeloBuds N70">
+        <TitleBar x:Name="AppTitleBar" Title="OpenQCY Desktop" Subtitle="QCY MeloBuds">
             <TitleBar.IconSource>
                 <ImageIconSource ImageSource="Assets/AppIcon-v2.png" />
             </TitleBar.IconSource>
@@ -26,7 +26,7 @@
 
         <tb:TaskbarIcon
             x:Name="TrayIcon"
-            ToolTipText="OpenQCY Desktop · N70"
+            ToolTipText="OpenQCY Desktop"
             IconSource="/Assets/TrayIcon.ico"
             LeftClickCommand="{x:Bind ShowTrayFlyoutCommand}"
             RightClickCommand="{x:Bind ShowTrayFlyoutCommand}"

@@ -41,7 +41,7 @@ foreach (var device in devices)
         $"L {device.LeftBattery}% / R {device.RightBattery}% / case {device.CaseBattery}%");
 }
 
-var target = devices.FirstOrDefault(device => QcyUuids.IsN70(device.VendorId)) ?? devices[0];
+var target = devices.FirstOrDefault(device => QcyUuids.IsSupported(device.VendorId)) ?? devices[0];
 Console.WriteLine($"Connecting to the {target.Name} control channel…");
 
 await using var connection = await transport.ConnectAsync(target);

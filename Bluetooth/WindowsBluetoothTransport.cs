@@ -4,6 +4,7 @@ using Windows.Devices.Enumeration;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.Advertisement;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
+using Windows.Devices.Bluetooth.Rfcomm;
 using Windows.Storage.Streams;
 
 namespace OpenQCY_Desktop.Bluetooth;
@@ -22,7 +23,7 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
         cancellationToken.ThrowIfCancellationRequested();
 
         return pairedDevices
-            .Where(device => LooksLikeN70(device.Name))
+            .Where(device => LooksLikeSupportedDevice(device.Name))
             .Select(device => new
             {
                 device.Name,
@@ -42,49 +43,92 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
         CancellationToken cancellationToken = default)
     {
         var devices = new List<BluetoothDeviceInfo>();
-        var serviceSelector = GattDeviceService.GetDeviceSelectorFromUuid(QcyUuids.MainService);
-        var knownServices = await DeviceInformation.FindAllAsync(serviceSelector);
-        foreach (var knownService in knownServices)
+
+        // 1. Check Classic Bluetooth paired devices (e.g. QCY MeloBuds N30 connected for audio)
+        var classicSelector = BluetoothDevice.GetDeviceSelectorFromPairingState(true);
+        var pairedClassicDevices = await DeviceInformation.FindAllAsync(classicSelector);
+        foreach (var pairedClassic in pairedClassicDevices.Where(d => LooksLikeSupportedDevice(d.Name)))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            GattDeviceService? service = null;
             try
             {
-                service = await GattDeviceService.FromIdAsync(knownService.Id);
-                cancellationToken.ThrowIfCancellationRequested();
-                if (service is null)
-                {
-                    continue;
-                }
+                var addressStr = pairedClassic.Id.Contains('-')
+                    ? pairedClassic.Id[(pairedClassic.Id.LastIndexOf('-') + 1)..].Replace(":", "")
+                    : string.Empty;
 
-                var device = await CreateKnownDeviceAsync(
-                    service.Session.DeviceId.Id,
-                    knownService.Name,
-                    cancellationToken);
-                if (device is not null)
+                if (ulong.TryParse(addressStr, System.Globalization.NumberStyles.HexNumber, null, out var address))
                 {
-                    devices.Add(device);
+                    var vendorId = GuessVendorId(pairedClassic.Name);
+                    devices.Add(new BluetoothDeviceInfo(
+                        pairedClassic.Id,
+                        pairedClassic.Name,
+                        address,
+                        address,
+                        null,
+                        vendorId,
+                        short.MinValue,
+                        0, 0, 0,
+                        false, false, false,
+                        DateTimeOffset.UtcNow));
                 }
             }
             catch (Exception) when (!cancellationToken.IsCancellationRequested)
             {
-            }
-            finally
-            {
-                service?.Dispose();
             }
         }
 
+        // 2. Check GATT Services (A001 and A002)
+        var serviceUuids = new[] { QcyUuids.MainService, QcyUuids.JieliMainService };
+        foreach (var serviceUuid in serviceUuids)
+        {
+            var serviceSelector = GattDeviceService.GetDeviceSelectorFromUuid(serviceUuid);
+            var knownServices = await DeviceInformation.FindAllAsync(serviceSelector);
+            foreach (var knownService in knownServices)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                GattDeviceService? service = null;
+                try
+                {
+                    service = await GattDeviceService.FromIdAsync(knownService.Id);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (service is null)
+                    {
+                        continue;
+                    }
+
+                    var device = await CreateKnownDeviceAsync(
+                        service.Session.DeviceId.Id,
+                        knownService.Name,
+                        serviceUuid == QcyUuids.JieliMainService ? QcyUuids.N30VendorId : QcyUuids.N70BlackVendorId,
+                        cancellationToken);
+                    if (device is not null)
+                    {
+                        devices.Add(device);
+                    }
+                }
+                catch (Exception) when (!cancellationToken.IsCancellationRequested)
+                {
+                }
+                finally
+                {
+                    service?.Dispose();
+                }
+            }
+        }
+
+        // 3. Check Paired BLE devices matching name
         var pairedSelector = BluetoothLEDevice.GetDeviceSelectorFromPairingState(true);
         var pairedDevices = await DeviceInformation.FindAllAsync(pairedSelector);
-        foreach (var pairedDevice in pairedDevices.Where(device => LooksLikeN70(device.Name)))
+        foreach (var pairedDevice in pairedDevices.Where(device => LooksLikeSupportedDevice(device.Name)))
         {
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
+                var vendorId = GuessVendorId(pairedDevice.Name);
                 var device = await CreateKnownDeviceAsync(
                     pairedDevice.Id,
                     pairedDevice.Name,
+                    vendorId,
                     cancellationToken);
                 if (device is not null)
                 {
@@ -93,7 +137,6 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
             }
             catch (Exception) when (!cancellationToken.IsCancellationRequested)
             {
-                // A cached Windows entry may be stale. Other candidates can still be valid.
             }
         }
 
@@ -136,9 +179,7 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
                 var name = eventArgs.Advertisement.LocalName;
                 if (string.IsNullOrWhiteSpace(name))
                 {
-                    name = QcyUuids.IsN70(advertisement.VendorId)
-                        ? "QCY MeloBuds N70"
-                        : $"QCY device ({advertisement.VendorId})";
+                    name = QcyUuids.GetModelName(advertisement.VendorId);
                 }
 
                 var info = new BluetoothDeviceInfo(
@@ -180,7 +221,7 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
         }
 
         return devices.Values
-            .OrderByDescending(device => QcyUuids.IsN70(device.VendorId))
+            .OrderByDescending(device => QcyUuids.IsSupported(device.VendorId))
             .ThenByDescending(device => device.SignalStrength)
             .ToArray();
     }
@@ -203,6 +244,49 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
             .ToArray();
 
         var diagnostics = new List<string>();
+
+        // 1. Try Classic Bluetooth RFCOMM SPP (for JieLi devices like MeloBuds N30)
+        foreach (var address in candidates)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            BluetoothDevice? classicDevice = null;
+            try
+            {
+                classicDevice = await BluetoothDevice.FromBluetoothAddressAsync(address);
+                if (classicDevice is not null)
+                {
+                    if (classicDevice.ConnectionStatus == BluetoothConnectionStatus.Connected)
+                    {
+                        var rfcomm = await classicDevice.GetRfcommServicesAsync(BluetoothCacheMode.Cached);
+                        var spp = rfcomm.Services.FirstOrDefault(s => s.ServiceId.Uuid == QcyUuids.SppService);
+                        foreach (var other in rfcomm.Services.Where(s => s != spp))
+                        {
+                            other.Dispose();
+                        }
+
+                        if (spp is not null)
+                        {
+                            return await RfcommBluetoothDeviceConnection.CreateAsync(classicDevice, spp, cancellationToken);
+                        }
+                    }
+                    else
+                    {
+                        diagnostics.Add($"{classicDevice.Name} ({QcyAdvertisement.FormatAddress(address)}): Device is paired but disconnected. Make sure the earbuds are connected to Windows.");
+                    }
+
+                    classicDevice.Dispose();
+                }
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                classicDevice?.Dispose();
+                diagnostics.Add($"{QcyAdvertisement.FormatAddress(address)} (RFCOMM): {exception.GetType().FullName}: {exception.Message} ({exception.HResult:X8})");
+            }
+        }
+
+        // 2. Try BLE GATT (MainService A001 or JieliMainService A002)
+        var servicesToTry = new[] { QcyUuids.MainService, QcyUuids.JieliMainService };
+
         foreach (var address in candidates)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -217,29 +301,39 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
                     continue;
                 }
 
-                var services = await bluetoothDevice.GetGattServicesForUuidAsync(
-                    QcyUuids.MainService,
-                    BluetoothCacheMode.Uncached);
-                cancellationToken.ThrowIfCancellationRequested();
-
-                if (services.Status != GattCommunicationStatus.Success || services.Services.Count == 0)
+                foreach (var serviceUuid in servicesToTry)
                 {
-                    diagnostics.Add($"{QcyAdvertisement.FormatAddress(address)}: A001 service not found ({services.Status})");
-                    bluetoothDevice.Dispose();
-                    bluetoothDevice = null;
-                    continue;
+                    var services = await bluetoothDevice.GetGattServicesForUuidAsync(
+                        serviceUuid,
+                        BluetoothCacheMode.Uncached);
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    if (services.Status != GattCommunicationStatus.Success || services.Services.Count == 0)
+                    {
+                        services = await bluetoothDevice.GetGattServicesForUuidAsync(
+                            serviceUuid,
+                            BluetoothCacheMode.Cached);
+                        cancellationToken.ThrowIfCancellationRequested();
+                    }
+
+                    if (services.Status == GattCommunicationStatus.Success && services.Services.Count > 0)
+                    {
+                        var service = services.Services[0];
+                        for (var index = 1; index < services.Services.Count; index++)
+                        {
+                            services.Services[index].Dispose();
+                        }
+
+                        return await WindowsBluetoothDeviceConnection.CreateAsync(
+                            bluetoothDevice,
+                            service,
+                            cancellationToken);
+                    }
                 }
 
-                var service = services.Services[0];
-                for (var index = 1; index < services.Services.Count; index++)
-                {
-                    services.Services[index].Dispose();
-                }
-
-                return await WindowsBluetoothDeviceConnection.CreateAsync(
-                    bluetoothDevice,
-                    service,
-                    cancellationToken);
+                diagnostics.Add($"{QcyAdvertisement.FormatAddress(address)}: Neither A001 nor A002 GATT service found");
+                bluetoothDevice.Dispose();
+                bluetoothDevice = null;
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
             {
@@ -250,7 +344,7 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
 
         throw new InvalidOperationException(
             diagnostics.Count == 0
-                ? "No QCY control address was advertised."
+                ? "No QCY control address was advertised or reachable."
                 : string.Join(Environment.NewLine, diagnostics));
     }
 
@@ -262,15 +356,36 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
         return value;
     }
 
-    private static bool LooksLikeN70(string? name) =>
+    private static bool LooksLikeSupportedDevice(string? name) =>
         !string.IsNullOrWhiteSpace(name) &&
-        name.Contains("N70", StringComparison.OrdinalIgnoreCase) &&
+        (name.Contains("N70", StringComparison.OrdinalIgnoreCase) ||
+         name.Contains("N30", StringComparison.OrdinalIgnoreCase) ||
+         name.Contains("HT16", StringComparison.OrdinalIgnoreCase) ||
+         name.Contains("HT18", StringComparison.OrdinalIgnoreCase) ||
+         name.Contains("MeloBuds", StringComparison.OrdinalIgnoreCase)) &&
         (name.Contains("QCY", StringComparison.OrdinalIgnoreCase) ||
-            name.Contains("MeloBuds", StringComparison.OrdinalIgnoreCase));
+         name.Contains("MeloBuds", StringComparison.OrdinalIgnoreCase));
+
+    private static ushort GuessVendorId(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return QcyUuids.N70BlackVendorId;
+        }
+
+        if (name.Contains("N30", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("HT16", StringComparison.OrdinalIgnoreCase))
+        {
+            return QcyUuids.N30VendorId;
+        }
+
+        return QcyUuids.N70BlackVendorId;
+    }
 
     private static async Task<BluetoothDeviceInfo?> CreateKnownDeviceAsync(
         string deviceId,
         string? fallbackName,
+        ushort vendorId,
         CancellationToken cancellationToken)
     {
         using var bluetoothDevice = await BluetoothLEDevice.FromIdAsync(deviceId);
@@ -281,7 +396,7 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
         }
 
         var name = string.IsNullOrWhiteSpace(bluetoothDevice.Name)
-            ? fallbackName ?? "QCY MeloBuds N70"
+            ? fallbackName ?? QcyUuids.GetModelName(vendorId)
             : bluetoothDevice.Name;
         return new BluetoothDeviceInfo(
             deviceId,
@@ -289,7 +404,7 @@ public sealed class WindowsBluetoothTransport : IBluetoothTransport
             bluetoothDevice.BluetoothAddress,
             null,
             null,
-            QcyUuids.N70BlackVendorId,
+            vendorId,
             short.MinValue,
             0,
             0,
